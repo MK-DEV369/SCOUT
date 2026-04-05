@@ -29,9 +29,6 @@ export default function Layout({ children, onRunPipeline, running }) {
         <NavLink to="/analytics" className={({ isActive }) => (isActive ? "tab active" : "tab")}>
           Analytics
         </NavLink>
-        <NavLink to="/teams" className={({ isActive }) => (isActive ? "tab active" : "tab")}>
-          Teams
-        </NavLink>
       </nav>
 
       <main className="content">{children}</main>

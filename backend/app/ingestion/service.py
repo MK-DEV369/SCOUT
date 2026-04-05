@@ -3,6 +3,7 @@ from collections.abc import Iterable
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.db.models import RawIngestionRecord, UnifiedRecord
 from app.ingestion.connectors.acled import ACLEDConnector
 from app.ingestion.connectors.base import SourceConnector
@@ -20,11 +21,12 @@ class IngestionService:
         self.connectors: list[SourceConnector] = [
             GDELTConnector(),
             NewsAPIConnector(),
-            FreightosConnector(),
             WorldBankConnector(),
             ACLEDConnector(),
             FREDConnector(),
         ]
+        if settings.enable_freightos:
+            self.connectors.append(FreightosConnector())
 
     async def collect(self) -> list[NormalizedRecord]:
         records: list[NormalizedRecord] = []

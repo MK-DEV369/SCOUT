@@ -8,7 +8,6 @@ import DashboardPage from "./pages/DashboardPage";
 import AlertsPage from "./pages/AlertsPage";
 import SuppliersPage from "./pages/SuppliersPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
-import TeamsPage from "./pages/TeamsPage";
 
 export default function App() {
   const [alerts, setAlerts] = useState([]);
@@ -64,7 +63,6 @@ export default function App() {
         <Route path="/alerts" element={<AlertsPage alerts={data.alerts} />} />
         <Route path="/suppliers" element={<SuppliersPage suppliers={data.suppliers} onSave={saveSupplier} />} />
         <Route path="/analytics" element={<AnalyticsPage events={data.events} riskItems={data.riskItems} />} />
-        <Route path="/teams" element={<TeamsPage />} />
       </Routes>
     </Layout>
   );

@@ -8,9 +8,15 @@ class Settings(BaseSettings):
 
     newsapi_key: str | None = None
     freightos_api_key: str | None = None
+    enable_freightos: bool = False
     world_bank_base_url: str = "https://api.worldbank.org/v2"
     gdelt_base_url: str = "https://api.gdeltproject.org/api/v2/doc/doc"
-    acled_base_url: str = "https://api.acleddata.com/acled/read"
+    acled_base_url: str = "https://acleddata.com/api/acled/read"
+    acled_auth_url: str = "https://acleddata.com/oauth/token"
+    acled_client_id: str = "acled"
+    acled_username: str | None = None
+    acled_password: str | None = None
+    acled_access_token: str | None = None
     fred_api_key: str | None = None
     event_classifier_model: str = "distilbert-base-uncased-finetuned-sst-2-english"
     summarizer_model: str = "mistralai/Mistral-7B-Instruct-v0.2"

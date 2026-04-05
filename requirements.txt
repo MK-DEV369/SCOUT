@@ -14,3 +14,4 @@ spacy==3.8.7
 neo4j==5.28.2
 datasets==4.1.1
 xgboost==3.1.1
+protobuf==5.29.5

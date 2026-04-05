@@ -31,14 +31,14 @@ It now also includes **Phase 3-6 delivery**:
 ### Frontend
 
 - React dashboard (Vite + React Router)
-- Pages: Dashboard, Alerts, Supplier Profile, Analytics, Teams
+- Pages: Home, Dashboard, Alerts, Supplier Profile, Analytics
 - Recharts visualizations for trends, severity, and distributions
 - Global map using event-country markers
 
 ### ML Setup
 
-- DistilBERT configured (`distilbert-base-uncased`)
-- Mistral configured (`mistralai/Mistral-7B-Instruct-v0.2`)
+- DistilBERT configured (`distilbert-base-uncased` by default, local fine-tuned artifact supported)
+- Mistral configured (`mistralai/Mistral-7B-Instruct-v0.3` by default, local artifact supported)
 - On-demand model loading endpoint
 
 ### NLP + Risk + Graph
@@ -48,6 +48,13 @@ It now also includes **Phase 3-6 delivery**:
 - Mistral summarization into operational bullet points
 - Risk feature engineering and weighted score formula
 - Neo4j graph updates for ripple-effect modeling
+
+Model loader behavior:
+
+- DistilBERT prefers a local fine-tuned artifact if available.
+- Mistral prefers a local artifact if available, otherwise loads the configured Hugging Face model.
+- The `/api/v1/ml/load` endpoint reports whether each model loaded successfully.
+- On this workspace, DistilBERT loads on `cuda:0` and Mistral v0.3 loads successfully with GPU-first offload-aware settings.
 
 ## Unified Schema
 
@@ -114,11 +121,11 @@ frontend/
     components/
       Layout.jsx
     pages/
+      HomePage.jsx
       DashboardPage.jsx
       AlertsPage.jsx
       SuppliersPage.jsx
       AnalyticsPage.jsx
-      TeamsPage.jsx
 requirements.txt
 .env.example
 ```
@@ -236,7 +243,8 @@ npm run dev
 
 App URLs:
 
-- Frontend: `http://127.0.0.1:8000/`
+- Frontend home: `http://127.0.0.1:8000/#/`
+- Frontend dashboard: `http://127.0.0.1:8000/#/dashboard`
 - Health: `http://127.0.0.1:8000/api/v1/health`
 - Run ingestion once: `POST http://127.0.0.1:8000/api/v1/ingestion/run`
 - List unified records: `GET http://127.0.0.1:8000/api/v1/records`
@@ -253,6 +261,16 @@ Phase 3-6 API endpoints:
 - `GET /api/v1/alerts?min_level=Medium` -> get filtered disruption alerts
 - `POST /api/v1/suppliers` -> create or update supplier profile
 - `GET /api/v1/suppliers` -> list suppliers
+
+Homepage sections:
+
+- How the project works
+- Tech stack
+- Innovations
+- What is better than existing solutions
+- Objectives
+- Methodologies
+- Teams section with 5 placeholders
 
 ## Key APIs
 
@@ -277,18 +295,13 @@ Platform and model:
 - `GET /api/v1/ml/status`
 - `POST /api/v1/ingestion/run` (legacy/manual ingestion endpoint)
 
-## Teams Page
+## Homepage Team Section
 
-The frontend includes a dedicated Teams page with 5 placeholders:
+The homepage includes a dedicated teams section with 5 placeholders:
 
 - 2 AIML students
 - 1 CS student
 - 2 IS students
-
-Route:
-
-- `/#/teams` when using built frontend served by FastAPI
-- `/teams` in Vite dev mode with HashRouter enabled
 
 ## Optional RAG Pipeline (If Needed)
 

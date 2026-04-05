@@ -1,4 +1,5 @@
 from functools import lru_cache
+from pathlib import Path
 
 import torch
 from transformers import pipeline
@@ -17,11 +18,13 @@ KEYWORDS = {
 
 @lru_cache(maxsize=1)
 def get_classifier():
-    # Fine-tuned DistilBERT can be loaded by setting EVENT_CLASSIFIER_MODEL to a local/remote model id.
+    # Prefer a local fine-tuned DistilBERT artifact if one has been trained and saved.
+    local_artifact = Path(__file__).resolve().parents[1] / "training" / "artifacts" / "event_classifier"
+    model_id = str(local_artifact) if local_artifact.exists() else settings.event_classifier_model
     device = 0 if torch.cuda.is_available() else -1
     return pipeline(
         task="text-classification",
-        model=settings.event_classifier_model,
+        model=model_id,
         truncation=True,
         device=device,
     )

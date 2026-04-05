@@ -1,0 +1,57 @@
+# Secrets and local config
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.Python
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Runtime/temp
+*.log
+logs/
+tmp/
+temp/
+
+# IDE/editor
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# ML artifacts and caches
+backend/app/ml/offload/
+backend/app/ml/artifacts/
+backend/app/training/artifacts/
+data/
