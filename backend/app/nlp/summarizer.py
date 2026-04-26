@@ -1,4 +1,5 @@
 from functools import lru_cache
+import re
 
 import torch
 from transformers import pipeline
@@ -19,6 +20,11 @@ def get_summarizer():
 
 
 def summarize_as_bullets(text: str) -> str:
+    if not settings.use_llm_summarizer:
+        chunks = [c.strip() for c in re.split(r"[.!?]\s+", text) if c.strip()]
+        bullets = chunks[:3] if chunks else [text[:200].strip()]
+        return "\n".join(f"- {item[:180]}" for item in bullets)
+
     prompt = (
         "Summarize the disruption news into 3 short bullet points with operational impact. "
         "Focus on location, delay duration, and supply chain impact.\n\n"

@@ -12,7 +12,7 @@ class RawIngestionRecord(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     source: Mapped[str] = mapped_column(String(80), index=True)
-    source_id: Mapped[str | None] = mapped_column(String(200), nullable=True, index=True)
+    source_id: Mapped[str | None] = mapped_column(String(1000), nullable=True, index=True)
     timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     text: Mapped[str] = mapped_column(Text)
     location: Mapped[str | None] = mapped_column(String(255), nullable=True)
