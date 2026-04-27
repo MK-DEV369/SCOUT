@@ -1,11 +1,45 @@
 import { Link } from "react-router-dom";
 
-const teamMembers = [
-  { role: "AI/ML Student", name: "Shashank K", stream: "AIML" },
-  { role: "AI/ML Student", name: "L Moryakantha", stream: "AIML" },
-  { role: "CS Student", name: "Tulya Reddy", stream: "CS" },
-  { role: "IS Student", name: "Anirudh", stream: "IS" },
-  { role: "IS Student", name: "Ankit Pathak", stream: "IS" },
+import DomeGallery from "@/components/DomeGallery";
+import moryakanthaImg from "@/lib/moryakantha.jpeg";
+import { Button } from "@/components/ui/button";
+
+const teamGalleryImages = [
+  {
+    src: "https://images.unsplash.com/photo-1617050318658-a9a3175e34cb?q=80&w=1200&auto=format&fit=crop",
+    alt: "Shashank K",
+    title: "Shashank K",
+    usn: "1XX22AI001",
+    branch: "AIML",
+  },
+  {
+    src: moryakanthaImg,
+    alt: "L Moryakantha",
+    title: "L Moryakantha",
+    usn: "1RV24AI406",
+    branch: "AIML",
+  },
+  {
+    src: "https://images.unsplash.com/photo-1609081144281-5b01f7f74531?q=80&w=1200&auto=format&fit=crop",
+    alt: "Tulya Reddy",
+    title: "Tulya Reddy",
+    usn: "1XX22CS011",
+    branch: "CS",
+  },
+  {
+    src: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=1200&auto=format&fit=crop",
+    alt: "Anirudh",
+    title: "Anirudh",
+    usn: "1XX22IS021",
+    branch: "IS",
+  },
+  {
+    src: "https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=1200&auto=format&fit=crop",
+    alt: "Ankit Pathak",
+    title: "Ankit Pathak",
+    usn: "1XX22IS022",
+    branch: "IS",
+  },
 ];
 
 const objectives = [
@@ -21,39 +55,64 @@ const methodology = [
   "Knowledge Graph propagation for ripple-effect modeling",
 ];
 
+const statusCards = [
+  { value: "6", label: "Live sources wired" },
+  { value: "5", label: "Frontend views connected" },
+  { value: "Late MVP", label: "Implementation stage" },
+];
+
+const capabilityNotes = [
+  "FastAPI backend with live /ingest, /events, /risk, /alerts, /suppliers, /health, and graph endpoints.",
+  "Risk scoring persists explainable features and alert levels for ranked supplier impact views.",
+  "Shadcn is initialized on the Vite frontend, so new UI primitives can be added without restructuring the app.",
+];
+
 export default function HomePage() {
   return (
     <div className="grid home-grid">
-      <section className="card home-hero">
-        <p className="eyebrow">SCOUT MainEL</p>
-        <h2>AI-powered supply disruption intelligence platform</h2>
-        <p className="section-copy">
-          A unified system for multi-source ingestion, NLP-driven event intelligence, risk scoring, and
-          supplier impact mapping.
-        </p>
-        <div className="hero-actions">
-          <Link className="cta-link" to="/dashboard">Open Dashboard</Link>
-          <Link className="cta-link secondary" to="/alerts">View Alerts</Link>
+      <section className="card home-hero hero-grid">
+        <div>
+          <p className="eyebrow">SCOUT MainEL</p>
+          <h2>Turn disruption signals into explainable supplier action.</h2>
+          <p className="section-copy">
+            SCOUT is now a working late-MVP control tower: multi-source ingestion, NLP extraction,
+            risk scoring, graph hooks, and live dashboard views are wired together and ready for demo use.
+          </p>
+          <div className="hero-actions">
+            <Button asChild size="lg">
+              <Link to="/dashboard">Open Dashboard</Link>
+            </Button>
+            <Button asChild size="lg" variant="outline">
+              <Link to="/alerts">Review Alerts</Link>
+            </Button>
+          </div>
         </div>
-        <div className="hero-stats">
-          <div className="stat-tile">
-            <strong>6</strong>
-            <span>Live data sources unified</span>
-          </div>
-          <div className="stat-tile">
-            <strong>3</strong>
-            <span>AI layers: NLP, risk, graph</span>
-          </div>
-          <div className="stat-tile">
-            <strong>1</strong>
-            <span>Operational control tower</span>
-          </div>
+
+        <div className="status-stack">
+          {statusCards.map((card) => (
+            <article className="stat-tile hero-stat-tile" key={card.label}>
+              <strong>{card.value}</strong>
+              <span>{card.label}</span>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="card full">
+        <p className="section-kicker">Current status</p>
+        <h2 className="section-title">What is already working</h2>
+        <div className="status-panel">
+          {capabilityNotes.map((item) => (
+            <p key={item} className="status-note">
+              {item}
+            </p>
+          ))}
         </div>
       </section>
 
       <section className="card">
         <p className="section-kicker">Workflow</p>
-        <h2 className="section-title">How The Project Works</h2>
+        <h2 className="section-title">How the project works</h2>
         <ol className="flow-list">
           <li>Collect data from GDELT, NewsAPI, Freightos, World Bank, ACLED, and FRED.</li>
           <li>Apply SHA-256 deduplication and unified schema normalization.</li>
@@ -65,7 +124,7 @@ export default function HomePage() {
 
       <section className="card">
         <p className="section-kicker">Implementation</p>
-        <h2 className="section-title">Tech Stack</h2>
+        <h2 className="section-title">Tech stack</h2>
         <div className="stack-chips">
           {[
             "FastAPI",
@@ -96,7 +155,7 @@ export default function HomePage() {
 
       <section className="card">
         <p className="section-kicker">Value Proposition</p>
-        <h2 className="section-title">Better Than Existing Solutions</h2>
+        <h2 className="section-title">Better than existing solutions</h2>
         <ul className="plain-list">
           <li>Cross-source fusion instead of isolated single-feed monitoring.</li>
           <li>Risk scoring with transparent feature contributions for explainability.</li>
@@ -126,16 +185,18 @@ export default function HomePage() {
 
       <section className="card full">
         <p className="section-kicker">Team</p>
-        <h2 className="section-title">Teams Section</h2>
-        <p className="subtle">Project placeholders: 2 AIML, 1 CS, 2 IS students.</p>
-        <div className="team-grid">
-          {teamMembers.map((member, index) => (
-            <article className="team-card" key={`${member.role}-${index}`}>
-              <h3>{member.name}</h3>
-              <p>{member.role}</p>
-              <span className="pill team-pill">{member.stream}</span>
-            </article>
-          ))}
+        <div className="team-dome-wrap">
+          <DomeGallery
+            images={teamGalleryImages}
+            fit={0.5}
+            minRadius={800}
+            maxVerticalRotationDeg={0}
+            segments={34}
+            dragDampening={1}
+            grayscale
+            openedImageWidth="420px"
+            openedImageHeight="460px"
+          />
         </div>
       </section>
     </div>

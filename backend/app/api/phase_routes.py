@@ -30,7 +30,13 @@ LOCATION_COORDS = {
 
 def _build_explanation(event: EventRecord, supplier: Supplier | None) -> str:
     supplier_name = supplier.name if supplier else "monitored supplier set"
-    where = event.location or (event.entities_json.get("countries", [None])[0]) or "upstream lane"
+    countries = []
+    if isinstance(event.entities_json, dict):
+        raw_countries = event.entities_json.get("countries", [])
+        countries = raw_countries if isinstance(raw_countries, list) else []
+
+    first_country = countries[0] if countries else None
+    where = event.location or first_country or "upstream lane"
     return f"{event.category} disruption in {where} can impact {supplier_name} via dependency links"
 
 

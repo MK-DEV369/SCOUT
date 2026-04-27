@@ -1,5 +1,29 @@
 # SCOUT MainEL - Phase 2 Data Ingestion Layer
 
+## Current Implementation Status (2026-04-27)
+
+Overall completion (code present and wired): ~78%
+
+- Completed:
+  - Multi-source ingestion connectors (GDELT, Google News, NewsAPI, World Bank, ACLED, FRED; Freightos optional)
+  - Unified normalization + hash dedup + raw/unified persistence
+  - NLP pipeline wiring (entity extraction + classification + summarization)
+  - Risk scoring pipeline with alert levels and feature breakdown in API payload
+  - Graph integration hooks and graph API endpoints
+  - Frontend pages wired to live backend APIs
+  - API health checks and ingestion fallback file path handling
+
+- Partially completed:
+  - Connector resiliency (timeouts and graceful per-source failure are present; retry/backoff/rate-limit policies are not fully implemented)
+  - Explainability (alert-level explanation text and risk features are present; factor decomposition endpoint/reporting is still basic)
+  - Operations hardening (works for local dev but needs stronger deployment-grade controls)
+
+- Pending:
+  - Automated test suite (unit/integration/frontend)
+  - Alembic migrations
+  - Source freshness/health metrics endpoint per connector
+  - Formal contract tests and performance SLO validation
+
 This repository now includes a full **Phase 2 ingestion stack** for multi-source global risk/supply intelligence:
 
 - GDELT (global events)
@@ -212,10 +236,11 @@ npm run build
 Set-Location ..
 ```
 
-Then run backend from repository root:
+Then run backend from backend directory:
 
 ```powershell
-uvicorn backend.app.main:app --reload
+Set-Location backend
+python -m uvicorn app.main:app --reload
 ```
 
 Optional React dev mode:
@@ -230,8 +255,8 @@ Recommended terminal split:
 1. Terminal 1 (backend):
 
 ```powershell
-Set-Location E:\6th SEM Data\Projects\SCOUT_MainEL
-uvicorn backend.app.main:app --reload
+Set-Location E:\6th SEM Data\Projects\SCOUT_MainEL\backend
+python -m uvicorn app.main:app --reload
 ```
 
 1. Terminal 2 (frontend dev):
@@ -427,6 +452,12 @@ Duplicate hashes are skipped before insert.
 - DistilBERT is moved directly to `cuda:0` when CUDA is available.
 - Mistral loads with `torch.float16` and `device_map=cuda:0` to prioritize GPU execution and minimize CPU RAM usage.
 - If Mistral hits VRAM limits, set `MISTRAL_USE_4BIT=true` and install `bitsandbytes`.
+
+## Recent Fixes (2026-04-27)
+
+- Fixed `/api/v1/alerts` 500 caused by empty `entities.countries` lists in alert explanation generation.
+- Improved frontend data refresh resiliency: dashboard refresh now uses `Promise.allSettled`, so one endpoint failure does not break all page data loads.
+- Corrected documented backend startup pattern to avoid `ModuleNotFoundError: No module named 'app'` when running from repository root.
 
 ## Next Recommended Steps
 

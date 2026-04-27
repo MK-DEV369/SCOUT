@@ -3,6 +3,36 @@
 Date: 2026-04-25
 Project: SCOUT MainEL (Supply Chain Operational and Risk Tracking)
 
+Status Addendum: 2026-04-27
+
+This document now includes an implementation reality-check against the repository state.
+
+## 0. Implementation Snapshot (2026-04-27)
+
+Estimated completion across MVP scope: ~78%
+
+Completed and working in code:
+
+- End-to-end API surface for ingest -> events -> risk -> alerts -> suppliers
+- Connector stack for GDELT, Google News, NewsAPI, World Bank, ACLED, FRED (+ optional Freightos)
+- Canonical normalization and dedup persistence (`raw_ingestion_records`, `unified_records`)
+- NLP enrichment pipeline wiring (entity extraction + event classification + summarization)
+- Risk scoring and alert levels persisted in `risk_records`
+- Graph endpoints and Neo4j integration hooks with graceful disabled mode
+- Frontend dashboard/pages connected to backend APIs
+
+Partially complete:
+
+- Reliability hardening: connector timeout and partial-failure handling are present, but no general retry/backoff/rate-limit control layer yet
+- Explainability: risk feature payload and plain-language explanation exist; full decomposition analytics/reporting is still minimal
+
+Not complete yet:
+
+- Automated tests (unit, integration, frontend)
+- Migration tooling (Alembic)
+- Formal source health/freshness metrics endpoint
+- Production-grade observability/alerts pipeline
+
 ## 1. Executive Summary
 
 SCOUT MainEL is an end-to-end supply chain risk intelligence platform that transforms heterogeneous external signals into explainable, personalized alerts for decision makers. The platform combines:
@@ -308,6 +338,11 @@ This closes a key requirement from the project definition:
 ## 15. Conclusion
 
 SCOUT MainEL already contains the core architecture for an advanced supply-chain intelligence platform. This integration cycle extends ingestion capability with Google News RSS while preserving the normalized contract and dedup behavior. The system is now better aligned with the project goals of broad-source coverage, structured NLP insight extraction, graph-based multihop reasoning, and personalized alerting.
+
+Practical conclusion after code audit (2026-04-27):
+
+- The platform is in late MVP stage and demonstrable end to end.
+- The main remaining work is engineering hardening (tests, migrations, reliability controls), not foundational architecture.
 
 Based on the SCOUT MainEL codebase analysis, here's the **complete software requirements list**:
 

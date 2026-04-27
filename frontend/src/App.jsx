@@ -16,17 +16,25 @@ export default function App() {
   const [suppliers, setSuppliers] = useState([]);
   const [running, setRunning] = useState(false);
 
+  function readItems(result, label) {
+    if (result.status === "fulfilled") {
+      return result.value.items || [];
+    }
+    console.error(`${label} request failed`, result.reason);
+    return [];
+  }
+
   async function refreshAll() {
-    const [alertsData, riskData, eventData, supplierData] = await Promise.all([
+    const [alertsResult, riskResult, eventResult, supplierResult] = await Promise.allSettled([
       api.alerts("Medium"),
       api.risk(),
       api.events(),
       api.suppliers(),
     ]);
-    setAlerts(alertsData.items || []);
-    setRiskItems(riskData.items || []);
-    setEvents(eventData.items || []);
-    setSuppliers(supplierData.items || []);
+    setAlerts(readItems(alertsResult, "alerts"));
+    setRiskItems(readItems(riskResult, "risk"));
+    setEvents(readItems(eventResult, "events"));
+    setSuppliers(readItems(supplierResult, "suppliers"));
   }
 
   async function runPipeline() {
@@ -47,7 +55,9 @@ export default function App() {
   }
 
   useEffect(() => {
-    refreshAll();
+    refreshAll().catch((error) => {
+      console.error("Initial refresh failed", error);
+    });
   }, []);
 
   const data = useMemo(

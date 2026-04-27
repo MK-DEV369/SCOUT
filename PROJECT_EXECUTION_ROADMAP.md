@@ -4,6 +4,47 @@ Date: 2026-04-22
 Project Type: Data + AI + Systems Engineering Platform for Supply Chain Risk Intelligence
 Planning Horizon: 8 weeks (MVP to integrated demo)
 
+## Progress Update (2026-04-27)
+
+Overall roadmap completion estimate: ~78%
+
+Execution status by workstream:
+
+1. Ingestion and ETL: Partially Complete
+- Completed: connector set, normalization, dedup, ingestion scheduler/manual run, fallback persistence
+- Pending: retry/backoff/rate-limit framework, source freshness metrics endpoint
+
+2. Data Model and Persistence: Partially Complete
+- Completed: core tables and indexes for primary query fields, unique dedup constraints
+- Pending: migration framework (Alembic), advanced JSONB indexing strategy, production schema evolution workflow
+
+3. NLP Pipeline: Partially Complete
+- Completed: extraction/classification/summarization pipeline integrated and persisted into `event_records`
+- Pending: benchmarked quality tracking (macro-F1), clustering, expanded evaluation harness
+
+4. Risk Engine: Mostly Complete (MVP)
+- Completed: weighted scoring formula, alert levels, persisted risk features, graph-aware composite score path
+- Pending: richer factor decomposition APIs and calibration workflow automation
+
+5. Graph Layer: Partially Complete
+- Completed: Neo4j hooks, graph APIs, graceful disabled behavior
+- Pending: broader ontology coverage and fully validated propagation explanation UX for all high-risk classes
+
+6. API Surface: Mostly Complete (MVP)
+- Completed: ingestion/events/risk/alerts/suppliers + health + graph + ML status/load routes
+- Pending: pagination/filter enhancements across all endpoints and formal API contract tests
+
+7. Frontend and Alert UX: Mostly Complete (MVP)
+- Completed: core pages, API integration, charts/map, supplier flows, resilient refresh behavior on partial API failure
+- Pending: deeper drill-down explainability UX and stronger empty/error-state design
+
+8. Testing and Quality Gates: Not Started
+- Pending: backend unit tests, integration tests, frontend tests, CI quality gates
+
+9. Week-by-week Outcome Alignment
+- Weeks 1-5 goals: largely achieved in implementation
+- Weeks 6-8 goals: partially addressed; hardening/packaging/testing remains primary gap
+
 ## 1) Objective and Scope
 
 Build a working, end-to-end intelligence system (not just a dashboard):
@@ -466,3 +507,7 @@ Tell the story in this exact sequence:
 5. Graph/trend/forecast enhancements
 
 If this order is followed strictly, you will move from good architecture to a production-style, defensible final project.
+
+Current recommendation:
+
+- Keep this build order but prioritize Week 7/8 activities now: automated testing, migration setup, and reliability controls.
