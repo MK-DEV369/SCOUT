@@ -1,6 +1,6 @@
-# SCOUT MainEL - Phase 2 Data Ingestion Layer
+# SCOUT MainEL - Phase 3 NLP Layer
 
-## Current Implementation Status (2026-04-27)
+## Current Implementation Status (2026-04-30)
 
 Overall completion (code present and wired): ~78%
 
@@ -66,6 +66,8 @@ It now also includes **Phase 3-6 delivery**:
 - On-demand model loading endpoint
 
 - Embeddings: switched to `sentence-transformers/all-mpnet-base-v2` using `SentenceTransformer` (improved embedding quality). Add `sentence-transformers` to your environment (see requirements).
+
+- Summarization: LLM summarizer is enabled by default and falls back to extractive bullet summaries if the model cannot load or generate output.
 
 ### NLP + Risk + Graph
 
@@ -466,6 +468,7 @@ Duplicate hashes are skipped before insert.
 - Replaced deprecated `@app.on_event("startup")` with a FastAPI `lifespan` handler in `backend/app/main.py` to address deprecation warnings and provide a single lifecycle entrypoint for startup/shutdown tasks.
 - Fixed `EventEmbedding` model nesting in `backend/app/db/models.py` (moved to top-level model). This resolves import errors when loading the NLP clustering pipeline.
 - Switched embedding implementation to use `SentenceTransformer('all-mpnet-base-v2')` in `backend/app/nlp/embeddings.py` (cached model load) to produce higher-quality 768-dim vectors.
+- Enabled the LLM summarizer by default in `backend/app/core/config.py` and updated `backend/app/nlp/summarizer.py` to use cached model loading with safe extractive fallback.
 - Ensure Databricks job trigger remains mandatory at startup; set `DATABRICKS_HOST`, `DATABRICKS_TOKEN`, and `DATABRICKS_DEFAULT_JOB_ID` in your environment before running the app.
 - Added `sentence-transformers` to `requirements.txt`.
 
