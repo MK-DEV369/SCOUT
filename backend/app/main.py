@@ -1,5 +1,6 @@
 from pathlib import Path
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,10 +14,36 @@ from app.core.config import settings
 from app.db.base import Base
 from app.db.session import engine
 from app.ingestion.scheduler import start_scheduler
+from app.ml.manager import load_models
+from app.integration.databricks import trigger_default_job
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title=settings.app_name)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # startup
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("Database bootstrap failed during startup", exc_info=exc)
+    # load ML models into memory
+    try:
+        load_models()
+    except Exception:
+        logger.exception("Failed to load ML models on startup")
+
+    # Trigger Databricks default job — this is required; will raise if not configured
+    try:
+        trigger_default_job()
+    except Exception:
+        logger.exception("Failed to trigger Databricks job on startup")
+
+    start_scheduler()
+    yield
+    # shutdown (scheduler cleanup could go here)
+
+
+app = FastAPI(title=settings.app_name, lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -36,11 +63,4 @@ if frontend_dir.exists():
     app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
 
 
-@app.on_event("startup")
-async def startup_event() -> None:
-    try:
-        Base.metadata.create_all(bind=engine)
-    except Exception as exc:  # noqa: BLE001
-        logger.exception("Database bootstrap failed during startup", exc_info=exc)
-
-    start_scheduler()
+# replaced deprecated startup event with FastAPI lifespan handler

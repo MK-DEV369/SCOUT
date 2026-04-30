@@ -58,6 +58,8 @@ class EventRecord(Base):
     severity: Mapped[float] = mapped_column(Float, default=0.5)
     entities_json: Mapped[dict] = mapped_column(JSON, default=dict)
     metadata_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    classifier_model: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    classifier_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
 
 
@@ -70,4 +72,14 @@ class RiskRecord(Base):
     risk_score: Mapped[float] = mapped_column(Float, index=True)
     alert_level: Mapped[str] = mapped_column(String(20), index=True)
     feature_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+
+class EventEmbedding(Base):
+    __tablename__ = "event_embeddings"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    event_id: Mapped[int] = mapped_column(ForeignKey("event_records.id"), index=True)
+    embedding: Mapped[dict] = mapped_column(JSON, default=dict)
+    cluster_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)

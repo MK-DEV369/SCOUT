@@ -72,7 +72,7 @@ export default function HomePage() {
     <div className="grid home-grid">
       <section className="card home-hero hero-grid">
         <div>
-          <p className="eyebrow">SCOUT MainEL</p>
+
           <h2>Turn disruption signals into explainable supplier action.</h2>
           <p className="section-copy">
             SCOUT is now a working late-MVP control tower: multi-source ingestion, NLP extraction,

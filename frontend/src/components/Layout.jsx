@@ -24,6 +24,13 @@ export default function Layout({ children, onRunPipeline, running }) {
     setMenuOpen(false);
   }, [location.pathname]);
 
+  useEffect(() => {
+    document.body.style.overflow = menuOpen ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [menuOpen]);
+
   const navItems = [
     { text: "Home", to: "/", end: true, image: "https://picsum.photos/600/400?random=21" },
     { text: "Dashboard", to: "/dashboard", image: "https://picsum.photos/600/400?random=22" },
@@ -70,8 +77,13 @@ export default function Layout({ children, onRunPipeline, running }) {
               onClick={() => setMenuOpen((open) => !open)}
               aria-expanded={menuOpen}
               aria-controls="app-sidebar-menu"
+              aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
             >
-              {menuOpen ? "Close Menu" : "Open Menu"}
+              <span className="menu-icon" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </span>
             </button>
             <button className="cta" onClick={onRunPipeline} disabled={running}>
               {running ? "Running..." : "Run Full Pipeline"}

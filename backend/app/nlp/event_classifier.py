@@ -30,11 +30,20 @@ def get_classifier():
     )
 
 
-def classify_event(text: str) -> tuple[str, float]:
+def get_classifier_info() -> dict[str, str]:
+    """Return basic classifier metadata: model id and device."""
+    local_artifact = Path(__file__).resolve().parents[1] / "training" / "artifacts" / "event_classifier"
+    model_id = str(local_artifact) if local_artifact.exists() else settings.event_classifier_model
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    return {"model_id": model_id, "device": device}
+
+
+def classify_event(text: str) -> tuple[str, float, str]:
     text_lower = text.lower()
     for label, words in KEYWORDS.items():
         if any(word in text_lower for word in words):
-            return label, 0.75
+            # heuristic label — annotate with generic heuristic marker
+            return label, 0.75, "heuristic"
 
     clf = get_classifier()
     result = clf(text[:1024])[0]
@@ -42,4 +51,6 @@ def classify_event(text: str) -> tuple[str, float]:
 
     # Fallback mapping when generic sentiment model is used before custom fine-tune artifacts exist.
     mapped = "Economic" if result.get("label") == "NEGATIVE" else "Logistics"
-    return mapped, score
+    # try to infer model id from settings/local artifact
+    info = get_classifier_info()
+    return mapped, score, info.get("model_id")

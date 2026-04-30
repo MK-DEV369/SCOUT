@@ -102,6 +102,7 @@ Phase 2 upgrades (after MVP is stable):
 - Kafka for event streaming
 - Spark/Flink for heavier processing
 - Timescale optimizations and forecasting services
+ - Databricks for distributed model training, embeddings, and batch evaluation
 
 ## 4) Target Architecture (Practical)
 
@@ -435,6 +436,7 @@ Acceptance criteria:
 - Integrate spaCy entity extraction in pipeline
 - Wire DistilBERT classifier endpoint/pipeline stage
 - Store NLP-enriched records in gold layer
+ - (Optional) Run model training/evaluation on Databricks using the `databricks` integration helper; configure `DATABRICKS_HOST`/`DATABRICKS_TOKEN` and a job to run training/eval notebooks
 
 ### Day 4-5
 

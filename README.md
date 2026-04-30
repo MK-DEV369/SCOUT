@@ -65,6 +65,8 @@ It now also includes **Phase 3-6 delivery**:
 - Mistral configured (`mistralai/Mistral-7B-Instruct-v0.3` by default, local artifact supported)
 - On-demand model loading endpoint
 
+- Embeddings: switched to `sentence-transformers/all-mpnet-base-v2` using `SentenceTransformer` (improved embedding quality). Add `sentence-transformers` to your environment (see requirements).
+
 ### NLP + Risk + Graph
 
 - spaCy-based entity extraction (companies, countries, ports, commodities)
@@ -458,6 +460,14 @@ Duplicate hashes are skipped before insert.
 - Fixed `/api/v1/alerts` 500 caused by empty `entities.countries` lists in alert explanation generation.
 - Improved frontend data refresh resiliency: dashboard refresh now uses `Promise.allSettled`, so one endpoint failure does not break all page data loads.
 - Corrected documented backend startup pattern to avoid `ModuleNotFoundError: No module named 'app'` when running from repository root.
+
+### 2026-04-30 Updates
+
+- Replaced deprecated `@app.on_event("startup")` with a FastAPI `lifespan` handler in `backend/app/main.py` to address deprecation warnings and provide a single lifecycle entrypoint for startup/shutdown tasks.
+- Fixed `EventEmbedding` model nesting in `backend/app/db/models.py` (moved to top-level model). This resolves import errors when loading the NLP clustering pipeline.
+- Switched embedding implementation to use `SentenceTransformer('all-mpnet-base-v2')` in `backend/app/nlp/embeddings.py` (cached model load) to produce higher-quality 768-dim vectors.
+- Ensure Databricks job trigger remains mandatory at startup; set `DATABRICKS_HOST`, `DATABRICKS_TOKEN`, and `DATABRICKS_DEFAULT_JOB_ID` in your environment before running the app.
+- Added `sentence-transformers` to `requirements.txt`.
 
 ## Next Recommended Steps
 

@@ -111,6 +111,116 @@ body {
   color: #c9ddf2;
 }
 
+.topbar-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.cta-menu {
+  background: transparent;
+  color: #d8ebff;
+  border: 1px solid rgba(167, 239, 158, 0.5);
+  width: 46px;
+  height: 42px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cta-menu:hover {
+  background: rgba(167, 239, 158, 0.14);
+}
+
+.menu-icon {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.menu-icon span {
+  width: 18px;
+  height: 2px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 8, 12, 0.56);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 220ms ease;
+  z-index: 18;
+}
+
+.sidebar-backdrop.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.sidebar-menu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: clamp(320px, 66.666vw, 980px);
+  transform: translateX(-102%);
+  transition: transform 280ms cubic-bezier(0.25, 0.9, 0.3, 1);
+  z-index: 24;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid rgba(167, 239, 158, 0.32);
+  background: linear-gradient(180deg, rgba(6, 12, 9, 0.98), rgba(4, 10, 8, 0.96));
+  box-shadow: 16px 0 40px rgba(0, 0, 0, 0.35);
+}
+
+.sidebar-menu.is-open {
+  transform: translateX(0);
+}
+
+.sidebar-menu__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 18px 20px;
+  border-bottom: 1px solid rgba(167, 239, 158, 0.24);
+}
+
+.sidebar-menu__head h2 {
+  margin: 0;
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #d7f8cb;
+}
+
+.sidebar-close {
+  border: 1px solid rgba(167, 239, 158, 0.45);
+  background: transparent;
+  color: #e4f7de;
+  border-radius: 999px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.sidebar-menu__body {
+  flex: 1;
+  min-height: 0;
+  padding: 14px;
+}
+
+.sidebar-menu__body .menu-wrap {
+  height: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
 .tabs {
   display: flex;
   gap: 10px;
@@ -130,6 +240,24 @@ body {
 }
 
 @media (max-width: 768px) {
+  .topbar {
+    flex-direction: column;
+  }
+
+  .topbar-actions {
+    width: 100%;
+  }
+
+  .topbar-actions .cta {
+    flex: 1;
+    text-align: center;
+  }
+
+  .cta-menu {
+    max-width: 52px;
+    flex: 0 0 52px;
+  }
+
   .tabs-flowing {
     height: 260px;
   }
@@ -153,6 +281,7 @@ body {
 .content {
   display: grid;
   gap: 22px;
+  margin-top: 22px;
 }
 
 .grid {

@@ -5,6 +5,14 @@ Project: SCOUT MainEL (Supply Chain Operational and Risk Tracking)
 
 Status Addendum: 2026-04-27
 
+Post-Audit Updates: 2026-04-30
+
+- Startup lifecycle: replaced `@app.on_event("startup")` with FastAPI `lifespan` handler in `backend/app/main.py` to remove deprecation warnings and centralize startup/shutdown operations.
+- NLP embeddings: replaced transformer pipeline-based feature-extraction with `SentenceTransformer('all-mpnet-base-v2')` in `backend/app/nlp/embeddings.py` to produce consistent 768-dim embeddings; model is cached for performance.
+- Model import fix: moved `EventEmbedding` to a top-level model in `backend/app/db/models.py` to resolve ImportError on startup and allow clustering code to import correctly.
+- Requirements: added `sentence-transformers` dependency to `requirements.txt` and documented the need to install `torch` separately (see README).
+- Databricks: startup Databricks job trigger remains mandatory; ensure `DATABRICKS_HOST`, `DATABRICKS_TOKEN`, and `DATABRICKS_DEFAULT_JOB_ID` environment variables are set before starting the app.
+
 This document now includes an implementation reality-check against the repository state.
 
 ## 0. Implementation Snapshot (2026-04-27)

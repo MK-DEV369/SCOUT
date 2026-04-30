@@ -26,7 +26,7 @@ def build_structured_events(db: Session, limit: int = 100) -> dict[str, int]:
             continue
 
         entities = extract_entities(record.text)
-        category, confidence = classify_event(record.text)
+        category, confidence, classifier_model = classify_event(record.text)
         summary = summarize_as_bullets(record.text)
 
         event = EventRecord(
@@ -39,6 +39,8 @@ def build_structured_events(db: Session, limit: int = 100) -> dict[str, int]:
             severity=min(max(confidence, 0.0), 1.0),
             entities_json=entities.model_dump(),
             metadata_json=record.metadata_json,
+            classifier_model=classifier_model,
+            classifier_confidence=float(min(max(confidence, 0.0), 1.0)),
         )
         db.add(event)
         created += 1
