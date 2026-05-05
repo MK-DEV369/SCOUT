@@ -2,7 +2,6 @@ from neo4j import GraphDatabase
 
 from app.core.config import settings
 
-
 class GraphService:
     def __init__(self) -> None:
         self._driver = None

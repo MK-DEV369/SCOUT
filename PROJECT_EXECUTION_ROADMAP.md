@@ -399,6 +399,12 @@ Acceptance criteria:
 
 ### Week 5: Dashboard v1
 
+# we can reduce the scope of project to target SMEs
+# domain based alerts for user
+# neo4j why not (its not that we want it, but yea, looks good for our project)
+# credibility of data, view source
+# mitigation engine
+
 - Build decision-focused pages and filters
 - Connect APIs for events/risk/alerts/suppliers
 - Demo output: interactive risk dashboard

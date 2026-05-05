@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-
+//integrate this to the logo beside the title : https://lucide.dev/icons/binoculars
 import DomeGallery from "@/components/DomeGallery";
 import moryakanthaImg from "@/lib/moryakantha.jpeg";
 import { Button } from "@/components/ui/button";

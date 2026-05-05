@@ -55,3 +55,4 @@ backend/app/ml/offload/
 backend/app/ml/artifacts/
 backend/app/training/artifacts/
 data/
+*.__pycache__

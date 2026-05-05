@@ -28,9 +28,17 @@ class DatabricksClient:
         resp.raise_for_status()
         return resp.json()
 
-
 def trigger_default_job() -> Dict[str, Any]:
     if not settings.databricks_default_job_id:
         raise RuntimeError("No default Databricks job id configured")
     client = DatabricksClient()
-    return client.run_job(int(settings.databricks_default_job_id))
+    try:
+        return client.run_job(int(settings.databricks_default_job_id))
+    except requests.HTTPError as exc:
+        response = exc.response
+        return {
+            "triggered": False,
+            "job_id": settings.databricks_default_job_id,
+            "status_code": getattr(response, "status_code", None),
+            "error": str(exc),
+        }

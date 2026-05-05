@@ -32,9 +32,14 @@ async def lifespan(app: FastAPI):
     except Exception:
         logger.exception("Failed to load ML models on startup")
 
-    # Trigger Databricks default job — this is required; will raise if not configured
+    # Trigger Databricks default job, but keep startup alive if Databricks denies the request.
     try:
-        trigger_default_job()
+        databricks_result = trigger_default_job()
+        if not databricks_result.get("triggered", True):
+            logger.warning(
+                "Databricks startup job was not triggered: %s",
+                databricks_result,
+            )
     except Exception:
         logger.exception("Failed to trigger Databricks job on startup")
 

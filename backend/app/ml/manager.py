@@ -1,6 +1,7 @@
 from datetime import datetime
 import logging
 
+from app.core.config import settings
 from app.ml.models import get_distilbert_bundle, get_mistral_bundle
 from app.nlp.event_classifier import get_classifier, get_classifier_info
 
@@ -22,10 +23,13 @@ def load_models() -> dict:
     except Exception as exc:  # noqa: BLE001
         logger.exception("Failed to load distilbert: %s", exc)
 
-    try:
-        _state["mistral"] = get_mistral_bundle()
-    except Exception as exc:  # noqa: BLE001
-        logger.exception("Failed to load mistral: %s", exc)
+    if getattr(settings, "load_mistral_on_startup", False):
+        try:
+            _state["mistral"] = get_mistral_bundle()
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("Failed to load mistral: %s", exc)
+    else:
+        _state["mistral"] = None
 
     try:
         # force classifier pipeline creation
