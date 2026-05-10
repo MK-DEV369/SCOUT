@@ -39,7 +39,7 @@ def build_structured_events(db: Session, limit: int = 100, entity_confidence_thr
         entities = extract_entities(record.text)
         entities = filter_entities_by_confidence(entities, min_confidence=entity_confidence_threshold)
         category, confidence, classifier_model = classify_event(record.text)
-        summary = summarize_as_bullets(record.text)
+        summary, summary_confidence = summarize_as_bullets(record.text)
 
         event = EventRecord(
             unified_record_id=record.id,
@@ -47,6 +47,7 @@ def build_structured_events(db: Session, limit: int = 100, entity_confidence_thr
             timestamp=record.timestamp,
             category=category,
             summary=summary,
+            summary_confidence=summary_confidence,
             location=record.location,
             severity=min(max(confidence, 0.0), 1.0),
             entities_json=entities.model_dump(),

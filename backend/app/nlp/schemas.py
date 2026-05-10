@@ -21,6 +21,7 @@ class StructuredEvent(BaseModel):
     timestamp: datetime
     text: str
     summary: str
+    summary_confidence: float | None = Field(ge=0.0, le=1.0, default=None)
     category: str
     severity: float
     location: str | None = None
