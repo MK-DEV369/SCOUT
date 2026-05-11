@@ -31,7 +31,7 @@ This repository now includes a full **Phase 2 ingestion stack** for multi-source
 - Freightos (shipping index)
 - World Bank (commodity indicators)
 - ACLED (conflict events)
-- FRED (macroeconomic signals)
+- FRED v2 `fred/series/observations` only, for the macroeconomic signals used by the risk pipeline
 
 The pipeline normalizes all inputs into a common schema, performs SHA-256 deduplication, and stores raw + unified records in PostgreSQL.
 
@@ -63,6 +63,7 @@ It now also includes **Phase 3-6 delivery**:
 
 - DistilBERT configured (`distilbert-base-uncased` by default, local fine-tuned artifact supported)
 - Mistral configured (`mistralai/Mistral-7B-Instruct-v0.3` by default, local artifact supported)
+- Gemini Fallback
 - On-demand model loading endpoint
 
 - Embeddings: switched to `sentence-transformers/all-mpnet-base-v2` using `SentenceTransformer` (improved embedding quality). Add `sentence-transformers` to your environment (see requirements).
@@ -478,3 +479,28 @@ Duplicate hashes are skipped before insert.
 2. Add retry/backoff and rate-limit handling per connector.
 3. Add test coverage for normalization and dedup modules.
 4. Add a message queue (Celery + Redis) for higher-volume ingestion workloads.
+
+## Team Plan & Next Phases
+
+**Current status:** Backend + NLP + frontend wiring ~78% complete; remaining work focuses on hardening, tests, and explainability.
+
+**Team (4 people)**
+- **You (Lead — Backend & Integration):** finalize ingestion reliability, Alembic migrations, DB indexes, and API contracts.
+- **Member 2 (NLP & ML):** improve classifier quality, add confidence thresholds, embedding maintenance, and summarizer reliability.
+- **Member 3 (Frontend & UX):** implement pagination/filters, alert drill-down UX, and error/empty states.
+- **Member 4 (Testing & DevOps):** add unit/integration tests, CI pipeline, metrics, and deployment scripts.
+
+**Next phases (shared work)**
+- **Phase A — Reliability & Migrations (Priority):** connector retry/backoff, Alembic migrations, DB indexes, source freshness endpoints. (Lead + Member 4)
+- **Phase B — NLP Quality & Explainability:** classifier calibration, evaluation harness, factor-decomposition endpoint for risk explainability. (Member 2)
+- **Phase C — API & Frontend polish:** pagination, filtering, contract tests, UX for alert explanations. (You + Member 3)
+- **Phase D — Testing & Observability:** unit/integration tests, ingestion metrics, health/freshness dashboards, CI. (Member 4)
+
+**Immediate next 2-week goals**
+- Add per-connector retry/backoff and timeouts. **Owner:** You. **Acceptance:** ingestion run survives any single connector failure.
+- Create initial Alembic migration and run locally. **Owner:** You + Member 4. **Acceptance:** DB schema can be migrated from empty state.
+- Add unit tests for `dedup` and `risk/engine`. **Owner:** Member 4. **Acceptance:** tests pass locally.
+- Improve classifier fallback thresholds and store classifier confidence with events. **Owner:** Member 2. **Acceptance:** classifier confidence present in `event_records`.
+- Add pagination to `GET /api/v1/events`. **Owner:** Member 3. **Acceptance:** frontend uses paginated endpoint without breaking.
+
+Replace placeholder member names with your team members' real names and adjust owners if desired.

@@ -102,7 +102,7 @@ Phase 2 upgrades (after MVP is stable):
 - Kafka for event streaming
 - Spark/Flink for heavier processing
 - Timescale optimizations and forecasting services
- - Databricks for distributed model training, embeddings, and batch evaluation
+- Databricks for distributed model training, embeddings, and batch evaluation
 
 ## 4) Target Architecture (Practical)
 
@@ -401,7 +401,7 @@ Acceptance criteria:
 
 # we can reduce the scope of project to target SMEs
 # domain based alerts for user
-# neo4j why not (its not that we want it, but yea, looks good for our project)
+# neo4j or the multihop
 # credibility of data, view source
 # mitigation engine
 
@@ -453,6 +453,28 @@ Acceptance criteria:
 
 - Wire dashboard risk and alert pages to live backend
 - Prepare first integrated mini-demo
+
+## Team Plan & Assignment (4 people)
+
+**High-level:** split work across four focused owners so the project finishes collectively within the next 4–6 weeks.
+
+- **You (Lead — Backend & Integration):** ingestion reliability, Alembic migrations, DB indexes, API contract tests, core backend merges.
+- **Member 2 (NLP & ML):** classifier calibration, summarizer stability, embeddings maintenance, model loading telemetry.
+- **Member 3 (Frontend & UX):** pagination, alert drill-down UI, error/empty states, integration with paginated APIs.
+- **Member 4 (Testing & DevOps):** unit/integration tests, CI pipeline, metrics export (Prometheus), orchestration scripts (Docker/compose or deployment guidance).
+
+**Sprint objectives (first 2 sprints)**
+- Sprint 1 (2 weeks): Reliability + migrations + tests
+  - Owners: You + Member 4
+  - Deliverables: connector retry/backoff, Alembic migration file, 10 core unit tests, ingestion health endpoint.
+- Sprint 2 (2 weeks): NLP quality + frontend polish
+  - Owners: Member 2 + Member 3
+  - Deliverables: classifier confidence stored in `event_records`, summarizer fallback improvements, frontend pagination + alert UX refinements.
+
+**Concentration areas (priority order)**
+1. Ingestion reliability (retry/backoff, per-source timeouts). 2. Migrations and schema stability. 3. Tests & CI. 4. NLP explainability and classifier quality. 5. Frontend pagination and alert UX.
+
+Adjust owners/names as your team prefers.
 
 ## 10) MVP Definition (Non-Negotiable)
 

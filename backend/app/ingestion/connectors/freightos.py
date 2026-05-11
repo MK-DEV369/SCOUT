@@ -11,16 +11,16 @@ class FreightosConnector(SourceConnector):
     name = "freightos"
 
     async def fetch(self) -> list[NormalizedRecord]:
-        headers = {}
-        if settings.freightos_api_key:
-            headers["Authorization"] = f"Bearer {settings.freightos_api_key}"
+        if not settings.freightos_api_key:
+            raise RuntimeError("FREIGHTOS_API_KEY is not configured")
+
+        headers = {"Authorization": f"Bearer {settings.freightos_api_key}"}
 
         url = "https://fbx.freightos.com/api/v1/freight"
 
         async with httpx.AsyncClient(timeout=20) as client:
             response = await client.get(url, headers=headers)
-            if response.status_code >= 400:
-                return []
+            response.raise_for_status()
             payload = response.json()
 
         entries = payload if isinstance(payload, list) else payload.get("data", [])
