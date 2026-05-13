@@ -5,7 +5,7 @@ from xml.etree import ElementTree
 import httpx
 
 from app.core.config import settings
-from app.ingestion.connectors.base import SourceConnector
+from app.ingestion.connectors.base import SourceConnector, SOURCE_CREDIBILITY
 from app.ingestion.schema import NormalizedRecord
 
 
@@ -56,6 +56,9 @@ class GoogleNewsConnector(SourceConnector):
                     text=text,
                     timestamp=timestamp,
                     location=source,
+                    source_credibility=SOURCE_CREDIBILITY.get(self.name, 0.60),
+                    source_url=link,
+                    source_outlet=source or "Google News",
                     metadata={
                         "link": link or None,
                         "source": source,

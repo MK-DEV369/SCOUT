@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from app.ingestion.connectors.base import SourceConnector
+from app.ingestion.connectors.base import SourceConnector, SOURCE_CREDIBILITY
 from app.ingestion.schema import NormalizedRecord
 
 
@@ -53,6 +53,9 @@ class ACLEDConnector(SourceConnector):
                             text=text,
                             timestamp=timestamp,
                             location=country or None,
+                            source_credibility=SOURCE_CREDIBILITY.get(self.name, 0.90),
+                            source_url="https://www.acleddata.com",
+                            source_outlet="ACLED",
                             metadata={
                                 "source_file": file_path.name,
                                 "country": country,

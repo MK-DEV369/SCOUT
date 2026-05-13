@@ -25,6 +25,10 @@ class NormalizedRecord(BaseModel):
     risk_score: float | None = None
     event_key: str | None = None
 
+    source_credibility: float = 0.5  # 0.0-1.0, default 0.5
+    source_url: str | None = None  # Direct link to original article/report
+    source_outlet: str | None = None  # e.g., "BBC", "Reuters", "World Bank"
+
     metadata: dict[str, Any] = Field(default_factory=dict)
 
     @classmethod
@@ -48,6 +52,9 @@ class NormalizedRecord(BaseModel):
         embedding: list[float] | None = None,
         summary: str | None = None,
         risk_score: float | None = None,
+        source_credibility: float | None = None,
+        source_url: str | None = None,
+        source_outlet: str | None = None,
     ) -> "NormalizedRecord":
         ts = timestamp or datetime.now(timezone.utc)
         return cls(
@@ -67,5 +74,8 @@ class NormalizedRecord(BaseModel):
             summary=summary,
             risk_score=risk_score,
             event_key=event_key,
+            source_credibility=source_credibility or 0.5,
+            source_url=source_url,
+            source_outlet=source_outlet,
             metadata=metadata or {},
         )

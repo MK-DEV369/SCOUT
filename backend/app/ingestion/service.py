@@ -116,6 +116,9 @@ class IngestionService:
                     timestamp=item.timestamp,
                     text=item.text,
                     location=item.location,
+                    source_credibility=item.source_credibility,
+                    source_url=item.source_url,
+                    source_outlet=item.source_outlet,
                     metadata_json=_stage_metadata(item),
                     content_hash=hash_value,
                 )

@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 import httpx
 
 from app.core.config import settings
-from app.ingestion.connectors.base import SourceConnector
+from app.ingestion.connectors.base import SourceConnector, SOURCE_CREDIBILITY
 from app.ingestion.schema import NormalizedRecord
 
 class FREDConnector(SourceConnector):
@@ -93,6 +93,9 @@ class FREDConnector(SourceConnector):
                     region="North America",
                     category="economic",
                     event_key=f"fred:{series_id}:{date}",
+                    source_credibility=SOURCE_CREDIBILITY.get(self.name, 0.95),
+                    source_url="https://fred.stlouisfed.org",
+                    source_outlet="Federal Reserve Economic Data (FRED)",
                     metadata={
                         "series_id": series_id,
                         "value": value,

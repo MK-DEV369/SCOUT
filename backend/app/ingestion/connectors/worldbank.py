@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 import httpx
 
 from app.core.config import settings
-from app.ingestion.connectors.base import SourceConnector
+from app.ingestion.connectors.base import SourceConnector, SOURCE_CREDIBILITY
 from app.ingestion.schema import NormalizedRecord
 
 
@@ -165,6 +165,9 @@ class WorldBankConnector(SourceConnector):
                         region="Global",
                         category=category,
                         event_key=f"worldbank:{indicator}:{latest_date}",
+                        source_credibility=SOURCE_CREDIBILITY.get(self.name, 0.95),
+                        source_url=f"{settings.world_bank_base_url}/country/WLD/indicator/{indicator}",
+                        source_outlet="World Bank",
                         metadata={
                             "indicator": indicator,
                             "indicator_label": self._indicator_label(indicator),

@@ -4,7 +4,7 @@ import re
 import httpx
 
 from app.core.config import settings
-from app.ingestion.connectors.base import SourceConnector
+from app.ingestion.connectors.base import SourceConnector, SOURCE_CREDIBILITY
 from app.ingestion.schema import NormalizedRecord
 
 
@@ -160,6 +160,9 @@ class NewsAPIConnector(SourceConnector):
                     location=source_name,
                     category=category_inferred,
                     country=country_hint,
+                    source_credibility=SOURCE_CREDIBILITY.get(self.name, 0.65),
+                    source_url=article.get("url"),
+                    source_outlet=source_name,
                     metadata={
                         "author": article.get("author"),
                         "url": article.get("url"),
@@ -226,6 +229,9 @@ class NewsAPIConnector(SourceConnector):
                     location=source_name,
                     category=category,
                     country=country_hint,
+                    source_credibility=SOURCE_CREDIBILITY.get(self.name, 0.0),
+                    source_url=article_url,
+                    source_outlet=source_name,
                     metadata={
                         "author": article.get("author"),
                         "url": article_url,
