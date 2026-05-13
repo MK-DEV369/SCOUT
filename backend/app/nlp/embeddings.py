@@ -11,6 +11,7 @@ from app.core.config import settings
 
 
 logger = logging.getLogger(__name__)
+_EMBEDDING_CACHE: dict[str, List[float]] = {}
 
 
 @lru_cache(maxsize=1)
@@ -52,19 +53,33 @@ def _fallback_embedding(text: str, dimensions: int = 384) -> List[float]:
     return vector
 
 
+def _cache_key(text: str) -> str:
+    return hashlib.sha256(text.strip().encode("utf-8")).hexdigest()
+
+
 def embed_text(text: str) -> List[float]:
     """Return a single embedding vector for the provided text as a list of floats."""
     if not text:
         return []
 
+    key = _cache_key(text)
+    cached = _EMBEDDING_CACHE.get(key)
+    if cached is not None:
+        return cached
+
     model = get_embedding_model()
     if model is None:
-        return _fallback_embedding(text)
+        embedding = _fallback_embedding(text)
+        _EMBEDDING_CACHE[key] = embedding
+        return embedding
 
     # keep a sane max length (characters) to avoid very long inputs
     snippet = text[:2000]
     emb = model.encode(snippet, convert_to_numpy=True)
     try:
-        return emb.tolist()
+        embedding = emb.tolist()
     except Exception:
-        return [float(x) for x in emb]
+        embedding = [float(x) for x in emb]
+
+    _EMBEDDING_CACHE[key] = embedding
+    return embedding

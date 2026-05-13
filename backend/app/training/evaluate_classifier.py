@@ -29,9 +29,9 @@ def evaluate_from_file(path: Path) -> None:
             label = item.get("label")
             if not text or not label:
                 continue
-            pred_label, score, model = classify_event(text)
+            prediction = classify_event(text)
             y_true.append(label)
-            y_pred.append(pred_label)
+            y_pred.append(str(prediction.get("primary_category", "economic_stress")))
 
     print(classification_report(y_true, y_pred, digits=4))
 

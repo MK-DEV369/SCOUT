@@ -1,7 +1,5 @@
 from typing import Any
-
 from app.ingestion.schema import NormalizedRecord
-
 
 def build_graph_payload(records: list[NormalizedRecord]) -> dict[str, Any]:
     nodes: list[dict[str, Any]] = []

@@ -4,7 +4,18 @@ from pathlib import Path
 from datasets import Dataset
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, Trainer, TrainingArguments
 
-LABELS = ["Geopolitical", "Logistics", "Environmental", "Economic"]
+LABELS = [
+    "conflict",
+    "sanctions",
+    "logistics_delay",
+    "labor_disruption",
+    "commodity_spike",
+    "weather",
+    "cyberattack",
+    "political_instability",
+    "infrastructure_failure",
+    "economic_stress",
+]
 LABEL_TO_ID = {label: idx for idx, label in enumerate(LABELS)}
 
 

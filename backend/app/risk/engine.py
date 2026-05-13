@@ -10,10 +10,21 @@ CREDIBILITY_BY_SOURCE = {
 }
 
 CATEGORY_SEVERITY = {
-    "Geopolitical": 0.85,
-    "Logistics": 0.75,
+    "conflict": 0.9,
+    "sanctions": 0.85,
+    "logistics_delay": 0.78,
+    "labor_disruption": 0.76,
+    "commodity_spike": 0.72,
+    "weather": 0.7,
+    "cyberattack": 0.84,
+    "political_instability": 0.74,
+    "infrastructure_failure": 0.82,
+    "economic_stress": 0.66,
+    # backward-compatible aliases
+    "Geopolitical": 0.9,
+    "Logistics": 0.78,
     "Environmental": 0.7,
-    "Economic": 0.65,
+    "Economic": 0.66,
 }
 
 

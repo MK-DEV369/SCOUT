@@ -42,6 +42,38 @@ COMMODITY_SET = {
     "lng",
 }
 
+MANUFACTURER_HINTS = {
+    "manufacturer",
+    "factory",
+    "plant",
+    "assembly",
+    "production",
+    "producer",
+    "supplier",
+}
+
+TRANSPORT_MODE_SET = {
+    "air",
+    "sea",
+    "rail",
+    "road",
+    "ocean",
+    "truck",
+    "ship",
+    "vessel",
+    "container",
+}
+
+CONFLICT_ACTOR_SET = {
+    "military",
+    "rebels",
+    "government",
+    "protesters",
+    "police",
+    "army",
+    "militia",
+}
+
 
 @lru_cache(maxsize=1)
 def get_nlp() -> Language:
@@ -103,13 +135,19 @@ def extract_entities(text: str) -> ExtractedEntities:
     doc = get_nlp()(text)
 
     companies = []
+    manufacturers = []
     countries = []
     ports = []
     commodities = []
+    transport_modes = []
+    conflict_actors = []
 
     for ent in doc.ents:
         if ent.label_ == "ORG":
             companies.append(EntityWithConfidence(text=ent.text, confidence=1.0))
+
+            if any(hint in ent.text.lower() for hint in MANUFACTURER_HINTS):
+                manufacturers.append(EntityWithConfidence(text=ent.text, confidence=0.85))
 
         if ent.label_ in {"GPE", "LOC"}:
             country_match, country_score = _best_match(ent.text, COUNTRY_SET, min_ratio=0.75)
@@ -145,9 +183,20 @@ def extract_entities(text: str) -> ExtractedEntities:
             if fuzzy_score > 0:
                 commodities.append(EntityWithConfidence(text=name.title(), confidence=fuzzy_score))
 
+    for name in TRANSPORT_MODE_SET:
+        if re.search(rf"\b{re.escape(name)}\b", text_lower):
+            transport_modes.append(EntityWithConfidence(text=name.title(), confidence=1.0))
+
+    for name in CONFLICT_ACTOR_SET:
+        if re.search(rf"\b{re.escape(name)}\b", text_lower):
+            conflict_actors.append(EntityWithConfidence(text=name.title(), confidence=1.0))
+
     return ExtractedEntities(
         companies=_normalize(companies),
+        manufacturers=_normalize(manufacturers),
         countries=_normalize(countries),
         ports=_normalize(ports),
         commodities=_normalize(commodities),
+        transport_modes=_normalize(transport_modes),
+        conflict_actors=_normalize(conflict_actors),
     )

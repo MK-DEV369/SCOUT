@@ -10,9 +10,12 @@ class EntityWithConfidence(BaseModel):
 
 class ExtractedEntities(BaseModel):
     companies: list[EntityWithConfidence] = Field(default_factory=list)
+    manufacturers: list[EntityWithConfidence] = Field(default_factory=list)
     countries: list[EntityWithConfidence] = Field(default_factory=list)
     ports: list[EntityWithConfidence] = Field(default_factory=list)
     commodities: list[EntityWithConfidence] = Field(default_factory=list)
+    transport_modes: list[EntityWithConfidence] = Field(default_factory=list)
+    conflict_actors: list[EntityWithConfidence] = Field(default_factory=list)
 
 
 class StructuredEvent(BaseModel):

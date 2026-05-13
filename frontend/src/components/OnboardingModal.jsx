@@ -1,10 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
 
 const DEFAULT_FORM = {
+  organizationName: "",
   companyDomain: "Semiconductor",
+  industryDomain: "Semiconductor",
+  country: "Taiwan",
+  operationalRegions: "Taiwan, South Korea, Japan",
   supplierRegions: "Taiwan, South Korea, Japan",
   criticalCommodities: "silicon wafer, photoresist, rare earth",
   supplierNames: "TSMC, Samsung, Intel",
+  criticalSuppliers: "TSMC, Samsung, Intel",
+  supplierCountries: "Taiwan, South Korea, United States",
+  criticalPorts: "Rotterdam, Singapore, Kaohsiung",
+  riskAppetite: "Balanced",
+  alertSensitivity: "High",
+  preferredAlertCategories: "geopolitical, logistics, economic",
+  role: "Analyst",
+  experienceLevel: "Intermediate",
+  operationalResponsibility: "Procurement and supply continuity",
   organizationType: "Manufacturer",
   experienceRiskAppetite: "Balanced",
 };
@@ -29,10 +42,23 @@ export default function OnboardingModal({ open, loading, onClose, onSubmit }) {
 
   const payload = useMemo(
     () => ({
+      organization_name: form.organizationName.trim(),
       company_domain: form.companyDomain.trim(),
+      industry_domain: form.industryDomain.trim(),
+      country: form.country.trim(),
+      operational_regions: splitList(form.operationalRegions),
       supplier_regions: splitList(form.supplierRegions),
       critical_commodities: splitList(form.criticalCommodities),
       supplier_names: splitList(form.supplierNames),
+      critical_suppliers: splitList(form.criticalSuppliers),
+      supplier_countries: splitList(form.supplierCountries),
+      critical_ports: splitList(form.criticalPorts),
+      risk_appetite: form.riskAppetite,
+      alert_sensitivity: form.alertSensitivity,
+      preferred_alert_categories: splitList(form.preferredAlertCategories),
+      role: form.role,
+      experience_level: form.experienceLevel,
+      operational_responsibility: form.operationalResponsibility,
       organization_type: form.organizationType.trim(),
       experience_risk_appetite: form.experienceRiskAppetite,
     }),
@@ -79,19 +105,103 @@ export default function OnboardingModal({ open, loading, onClose, onSubmit }) {
         </div>
 
         <form className="onboarding-form" onSubmit={handleSubmit}>
+          <div className="onboarding-section">
+            <h3>Company details</h3>
+            <label>
+              <span>Organization name</span>
+              <input value={form.organizationName} onChange={updateField("organizationName")} placeholder="SCOUT Industries" />
+            </label>
+
+            <label>
+              <span>Industry domain</span>
+              <input value={form.industryDomain} onChange={updateField("industryDomain")} placeholder="Semiconductor" />
+            </label>
+
+            <label>
+              <span>Country</span>
+              <input value={form.country} onChange={updateField("country")} placeholder="Taiwan" />
+            </label>
+
+            <label>
+              <span>Operational regions</span>
+              <textarea rows={3} value={form.operationalRegions} onChange={updateField("operationalRegions")} placeholder="Taiwan, South Korea, Japan" />
+            </label>
+          </div>
+
+          <div className="onboarding-section">
+            <h3>Supplier details</h3>
+            <label>
+              <span>Critical suppliers</span>
+              <textarea rows={3} value={form.criticalSuppliers} onChange={updateField("criticalSuppliers")} placeholder="TSMC, Samsung, Intel" />
+            </label>
+
+            <label>
+              <span>Supplier countries</span>
+              <textarea rows={3} value={form.supplierCountries} onChange={updateField("supplierCountries")} placeholder="Taiwan, South Korea, United States" />
+            </label>
+
+            <label>
+              <span>Critical ports</span>
+              <textarea rows={3} value={form.criticalPorts} onChange={updateField("criticalPorts")} placeholder="Rotterdam, Singapore, Kaohsiung" />
+            </label>
+
+            <label>
+              <span>Critical commodities</span>
+              <textarea rows={3} value={form.criticalCommodities} onChange={updateField("criticalCommodities")} placeholder="silicon wafer, photoresist, rare earth" />
+            </label>
+          </div>
+
+          <div className="onboarding-section">
+            <h3>Risk preferences</h3>
+            <label>
+              <span>Risk appetite</span>
+              <select value={form.riskAppetite} onChange={updateField("riskAppetite")}> 
+                <option value="Conservative">Conservative</option>
+                <option value="Balanced">Balanced</option>
+                <option value="Aggressive">Aggressive</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Alert sensitivity</span>
+              <select value={form.alertSensitivity} onChange={updateField("alertSensitivity")}> 
+                <option value="Low">Low</option>
+                <option value="High">High</option>
+                <option value="Critical">Critical</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Preferred alert categories</span>
+              <textarea rows={3} value={form.preferredAlertCategories} onChange={updateField("preferredAlertCategories")} placeholder="geopolitical, logistics, economic" />
+            </label>
+          </div>
+
+          <div className="onboarding-section">
+            <h3>User experience</h3>
+            <label>
+              <span>Role</span>
+              <input value={form.role} onChange={updateField("role")} placeholder="Analyst" />
+            </label>
+
+            <label>
+              <span>Experience level</span>
+              <select value={form.experienceLevel} onChange={updateField("experienceLevel")}>
+                <option value="Beginner">Beginner</option>
+                <option value="Intermediate">Intermediate</option>
+                <option value="Advanced">Advanced</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Operational responsibility</span>
+              <textarea rows={3} value={form.operationalResponsibility} onChange={updateField("operationalResponsibility")} placeholder="Procurement and supply continuity" />
+            </label>
+          </div>
+
           <label>
             <span>Company domain</span>
             <input value={form.companyDomain} onChange={updateField("companyDomain")} placeholder="Semiconductor" />
-          </label>
-
-          <label>
-            <span>Supplier regions</span>
-            <textarea rows={3} value={form.supplierRegions} onChange={updateField("supplierRegions")} placeholder="Taiwan, South Korea, Japan" />
-          </label>
-
-          <label>
-            <span>Critical commodities</span>
-            <textarea rows={3} value={form.criticalCommodities} onChange={updateField("criticalCommodities")} placeholder="silicon wafer, photoresist, rare earth" />
           </label>
 
           <label>

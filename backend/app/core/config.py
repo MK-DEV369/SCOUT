@@ -32,6 +32,13 @@ class Settings(BaseSettings):
     summarizer_model: str = "mistralai/Mistral-7B-Instruct-v0.2"
     use_llm_summarizer: bool = True
     load_mistral_on_startup: bool = False
+    mistral_min_free_vram_mb: int = 12000
+    allow_local_4bit_fallback: bool = True
+    llm_timeout_seconds: float = 20.0
+    llm_max_output_tokens: int = 220
+    databricks_llm_endpoint: str | None = Field(default=None, validation_alias=AliasChoices("DATABRICKS_LLM_ENDPOINT"))
+    gemini_api_key: str | None = Field(default=None, validation_alias=AliasChoices("GEMINI_API_KEY"))
+    gemini_model: str = "gemini-1.5-flash"
     spacy_model: str = "en_core_web_sm"
     embedding_model: str = "sentence-transformers/all-mpnet-base-v2"
 

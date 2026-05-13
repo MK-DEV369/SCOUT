@@ -35,10 +35,13 @@ export default function Layout({ children, onRunPipeline, running }) {
 
   const navItems = [
     { text: "Home", to: "/", end: true, image: "https://picsum.photos/600/400?random=21" },
-    { text: "Dashboard", to: "/dashboard", image: "https://picsum.photos/600/400?random=22" },
-    { text: "Alerts", to: "/alerts", image: "https://picsum.photos/600/400?random=23" },
-    { text: "Supplier Profile", to: "/suppliers", image: "https://picsum.photos/600/400?random=24" },
-    { text: "Analytics", to: "/analytics", image: "https://picsum.photos/600/400?random=25" },
+    { text: "Pipeline", to: "/pipeline", image: "https://picsum.photos/600/400?random=22" },
+    { text: "Dashboard", to: "/dashboard", image: "https://picsum.photos/600/400?random=23" },
+    { text: "Graph Explorer", to: "/graph", image: "https://picsum.photos/600/400?random=24" },
+    { text: "Alerts", to: "/alerts", image: "https://picsum.photos/600/400?random=25" },
+    { text: "Suppliers", to: "/suppliers", image: "https://picsum.photos/600/400?random=26" },
+    { text: "Analytics", to: "/analytics", image: "https://picsum.photos/600/400?random=27" },
+    { text: "Intel Report", to: "/report", image: "https://picsum.photos/600/400?random=28" },
   ];
 
   return (
@@ -70,7 +73,7 @@ export default function Layout({ children, onRunPipeline, running }) {
         <header className="topbar">
           <div>
             <h1>SCOUT Control Tower</h1>
-            <p>Supply disruption intelligence across ingest, NLP, risk, and suppliers.</p>
+            <p>Operational supply chain intelligence across ingestion, NLP, graph propagation, and mitigation.</p>
           </div>
           <div className="topbar-actions">
             <button
@@ -152,6 +155,8 @@ export default function Layout({ children, onRunPipeline, running }) {
           setOnboardingOpen(false);
         }}
       />
+
+      {running ? <div className="global-pipeline-glow" aria-hidden="true" /> : null}
     </div>
   );
 }

@@ -31,6 +31,21 @@ def get_runtime_device() -> str:
     return "cuda:0" if gpu_available() else "cpu"
 
 
+def get_cuda_memory_info() -> dict[str, int] | None:
+    if not gpu_available():
+        return None
+    try:
+        free_bytes, total_bytes = torch.cuda.mem_get_info(0)
+    except Exception:  # noqa: BLE001
+        return None
+    return {
+        "free_bytes": int(free_bytes),
+        "total_bytes": int(total_bytes),
+        "free_mb": int(free_bytes / 1024 / 1024),
+        "total_mb": int(total_bytes / 1024 / 1024),
+    }
+
+
 @lru_cache(maxsize=1)
 def get_distilbert_bundle() -> dict:
     tokenizer = AutoTokenizer.from_pretrained(DISTILBERT_MODEL_ID)
@@ -46,18 +61,21 @@ def get_distilbert_bundle() -> dict:
     }
 
 
-@lru_cache(maxsize=1)
-def get_mistral_bundle() -> dict:
+@lru_cache(maxsize=2)
+def get_mistral_bundle(use_4bit: bool | None = None) -> dict:
     tokenizer = AutoTokenizer.from_pretrained(MISTRAL_MODEL_ID)
-    use_4bit = os.getenv("MISTRAL_USE_4BIT", "false").lower() in {"1", "true", "yes"}
+    if use_4bit is None:
+        use_4bit = os.getenv("MISTRAL_USE_4BIT", "false").lower() in {"1", "true", "yes"}
 
     if gpu_available():
+        offload_folder = BASE_DIR / "offload"
+        offload_folder.mkdir(parents=True, exist_ok=True)
         model_kwargs = {
             "torch_dtype": torch.float16,
             "device_map": "auto",
             "low_cpu_mem_usage": True,
             "max_memory": {0: "7GiB", "cpu": "16GiB"},
-            "offload_folder": str(BASE_DIR / "offload"),
+            "offload_folder": str(offload_folder),
         }
         if use_4bit:
             model_kwargs["load_in_4bit"] = True
