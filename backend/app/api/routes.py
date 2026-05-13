@@ -1,12 +1,13 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import desc, select, text
 from sqlalchemy.orm import Session
 
-from app.db.models import UnifiedRecord
+from app.db.models import UnifiedRecord, EventRecord
 from app.db.session import engine, get_db
 from app.graph.neo4j_client import graph_service
 from app.ingestion.service import ingestion_service
 from app.ingestion.scheduler import run_ingestion_job
+from app.nlp.explainability import generate_event_explanation
 
 router = APIRouter()
 
@@ -69,3 +70,14 @@ def list_records(limit: int = 100, db: Session = Depends(get_db)) -> dict[str, l
         for row in rows
     ]
     return {"items": payload}
+
+
+@router.get("/api/v1/events/{event_id}/explain")
+def get_event_explanation(event_id: int, db: Session = Depends(get_db)) -> dict:
+    """Get detailed explainability for why this event was classified/extracted."""
+    event = db.query(EventRecord).filter(EventRecord.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail=f"Event {event_id} not found")
+    
+    explanation = generate_event_explanation(event)
+    return explanation
