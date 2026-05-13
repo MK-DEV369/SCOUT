@@ -17,30 +17,24 @@ def filter_entities_by_confidence(entities: ExtractedEntities, min_confidence: f
         commodities=[e for e in entities.commodities if e.confidence >= min_confidence],
     )
 
-
 def build_structured_events(db: Session, limit: int = 100, entity_confidence_threshold: float = 0.7) -> dict[str, int]:
     processed_ids = {
         row[0]
         for row in db.execute(select(EventRecord.unified_record_id)).all()
     }
-
     candidates = db.execute(
         select(UnifiedRecord).order_by(UnifiedRecord.timestamp.desc()).limit(limit)
     ).scalars().all()
-
     created = 0
     skipped = 0
-
     for record in candidates:
         if record.id in processed_ids:
             skipped += 1
             continue
-
         entities = extract_entities(record.text)
         entities = filter_entities_by_confidence(entities, min_confidence=entity_confidence_threshold)
         category, confidence, classifier_model = classify_event(record.text)
         summary, summary_confidence = summarize_as_bullets(record.text)
-
         event = EventRecord(
             unified_record_id=record.id,
             source=record.source,
@@ -57,6 +51,5 @@ def build_structured_events(db: Session, limit: int = 100, entity_confidence_thr
         )
         db.add(event)
         created += 1
-
     db.commit()
     return {"created": created, "skipped": skipped}

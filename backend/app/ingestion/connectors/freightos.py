@@ -1,43 +1,88 @@
-from datetime import datetime, timezone
+from typing import Any
 
 import httpx
 
 from app.core.config import settings
-from app.ingestion.connectors.base import SourceConnector
-from app.ingestion.schema import NormalizedRecord
 
 
-class FreightosConnector(SourceConnector):
-    name = "freightos"
+class FreightosConnector:
+    """Minimal Freightos helper for emissions and route-risk simulation."""
 
-    async def fetch(self) -> list[NormalizedRecord]:
+    base_url = "https://api.freightos.com/api/v1"
+
+    def _auth_headers(self) -> dict:
         if not settings.freightos_api_key:
             raise RuntimeError("FREIGHTOS_API_KEY is not configured")
+        return {"x-apikey": settings.freightos_api_key, "Content-Type": "application/json"}
 
-        headers = {"Authorization": f"Bearer {settings.freightos_api_key}"}
+    async def calculate_emissions(self, shipment: dict[str, Any]) -> dict[str, Any]:
+        """Call Freightos `/co2calc` endpoint with a shipment payload and return the API response.
 
-        url = "https://fbx.freightos.com/api/v1/freight"
+        Example payloads (FCL / LCL) are supported as provided in the API docs.
+        """
+        headers = self._auth_headers()
+        url = f"{self.base_url}/co2calc"
 
-        async with httpx.AsyncClient(timeout=20) as client:
-            response = await client.get(url, headers=headers)
+        async with httpx.AsyncClient(timeout=30) as client:
+            response = await client.post(url, headers=headers, json=shipment)
             response.raise_for_status()
-            payload = response.json()
+            return response.json()
 
-        entries = payload if isinstance(payload, list) else payload.get("data", [])
-        records: list[NormalizedRecord] = []
-        now = datetime.now(timezone.utc)
+    async def simulate_route_risk(
+        self,
+        *,
+        origin: str,
+        destination: str,
+        mode: str,
+        disruption_severity: float,
+    ) -> dict[str, Any]:
+        """Return a simple mitigation simulation record for a route.
 
-        for item in entries[:100]:
-            text = f"Freight index update: {item.get('index_name', 'FBX')} = {item.get('value', 'n/a')}"
-            records.append(
-                NormalizedRecord.with_defaults(
-                    source=self.name,
-                    source_id=str(item.get("id", "")),
-                    text=text,
-                    timestamp=now,
-                    location=item.get("route"),
-                    metadata=item,
-                )
-            )
+        This is intentionally lightweight: it estimates delay and risk from the
+        route description and disruption severity, then suggests a mitigation mode.
+        """
+        severity = max(0.0, min(1.0, float(disruption_severity)))
+        mode_key = mode.strip().lower()
 
-        return records
+        base_delay_days = {
+            "air": 2,
+            "fcl": 7,
+            "fcl_reefer": 8,
+            "lcl": 6,
+            "ltl": 4,
+            "rail": 5,
+            "barge": 6,
+            "roro": 6,
+            "express": 1,
+        }.get(mode_key, 5)
+
+        estimated_delay_days = max(1, round(base_delay_days * (1.0 + severity * 1.5)))
+
+        if severity >= 0.75:
+            risk_level = "high"
+            alternative_mode = "air" if mode_key not in {"air", "express"} else "express"
+            mitigation_recommendation = "Use expedited routing, buffer inventory, and pre-book alternative capacity."
+            emission_impact = "increased"
+        elif severity >= 0.4:
+            risk_level = "medium"
+            alternative_mode = "rail" if mode_key in {"fcl", "lcl", "ltl"} else "air"
+            mitigation_recommendation = "Monitor capacity, split shipments where possible, and prepare fallback routing."
+            emission_impact = "slightly increased"
+        else:
+            risk_level = "low"
+            alternative_mode = mode
+            mitigation_recommendation = "Maintain current routing with standard monitoring."
+            emission_impact = "stable"
+
+        return {
+            "route": f"{origin} → {destination}",
+            "origin": origin,
+            "destination": destination,
+            "mode": mode,
+            "estimated_delay_days": estimated_delay_days,
+            "risk_level": risk_level,
+            "alternative_mode": alternative_mode,
+            "mitigation_recommendation": mitigation_recommendation,
+            "emission_impact": emission_impact,
+            "disruption_severity": severity,
+        }

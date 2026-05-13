@@ -1,9 +1,14 @@
-from fastapi import APIRouter, Depends
+import re
 from datetime import datetime, timedelta, timezone
+from uuid import uuid4
+
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel, Field
 from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session
 
 from app.db.models import EventRecord, RiskRecord, Supplier
+from app.graph.neo4j_client import graph_service
 from app.db.session import get_db
 from app.ingestion.scheduler import run_ingestion_job
 from app.nlp.pipeline import build_structured_events
@@ -26,6 +31,234 @@ LOCATION_COORDS = {
     "long beach": {"lat": 33.7701, "lng": -118.1937},
     "los angeles": {"lat": 34.0522, "lng": -118.2437},
 }
+
+
+class OnboardingRequest(BaseModel):
+    company_domain: str = ""
+    supplier_regions: list[str] = Field(default_factory=list)
+    critical_commodities: list[str] = Field(default_factory=list)
+    supplier_names: list[str] = Field(default_factory=list)
+    organization_type: str = ""
+    experience_risk_appetite: str = "Balanced"
+
+
+def _normalize_terms(values: list[str]) -> list[str]:
+    terms: list[str] = []
+    for value in values:
+        for chunk in re.split(r"[,;\n]+", value or ""):
+            normalized = chunk.strip()
+            if normalized and normalized.lower() not in {term.lower() for term in terms}:
+                terms.append(normalized)
+    return terms
+
+
+def _risk_threshold_for_appetite(appetite: str) -> str:
+    mapping = {
+        "conservative": "Low",
+        "balanced": "Medium",
+        "aggressive": "High",
+    }
+    return mapping.get(appetite.strip().lower(), "Medium") if appetite else "Medium"
+
+
+def _text_blob(event: EventRecord, supplier: Supplier | None) -> str:
+    entities = event.entities_json if isinstance(event.entities_json, dict) else {}
+    parts: list[str] = [
+        event.source or "",
+        event.category or "",
+        event.summary or "",
+        event.location or "",
+        supplier.name if supplier else "",
+        supplier.country if supplier and supplier.country else "",
+    ]
+    for key in ("companies", "countries", "ports", "commodities"):
+        values = entities.get(key, [])
+        if isinstance(values, list):
+            parts.extend(str(value) for value in values)
+    return " ".join(parts).lower()
+
+
+def _matches_terms(blob: str, terms: list[str]) -> bool:
+    if not terms:
+        return True
+    return any(term.lower() in blob for term in terms)
+
+
+def _profile_relevance(event: EventRecord, supplier: Supplier | None, payload: OnboardingRequest) -> float:
+    blob = _text_blob(event, supplier)
+    entity_terms = []
+    entities = event.entities_json if isinstance(event.entities_json, dict) else {}
+    for key in ("countries", "commodities", "companies", "ports"):
+        values = entities.get(key, [])
+        if isinstance(values, list):
+            entity_terms.extend(str(value).lower() for value in values)
+
+    domain_terms = [term.lower() for term in re.split(r"[,;\n\-/]+", payload.company_domain or "") if term.strip()]
+    organization_terms = [term.lower() for term in re.split(r"[,;\n\-/]+", payload.organization_type or "") if term.strip()]
+    supplier_regions = _normalize_terms(payload.supplier_regions)
+    critical_commodities = _normalize_terms(payload.critical_commodities)
+    supplier_names = _normalize_terms(payload.supplier_names)
+
+    criteria = [
+        (bool(domain_terms), 0.3),
+        (bool(supplier_regions), 0.25),
+        (bool(critical_commodities), 0.25),
+        (bool(supplier_names), 0.15),
+        (bool(organization_terms), 0.05),
+    ]
+
+    active_weight = sum(weight for is_active, weight in criteria if is_active)
+    if not active_weight:
+        return 1.0
+
+    # Re-evaluate each active criterion independently so the score reflects the actual hit pattern.
+    matched_weight = 0.0
+    if domain_terms and _matches_terms(blob, domain_terms):
+        matched_weight += 0.3
+    if supplier_regions and _matches_terms(blob, supplier_regions + entity_terms):
+        matched_weight += 0.25
+    if critical_commodities and _matches_terms(blob, critical_commodities + entity_terms):
+        matched_weight += 0.25
+    if supplier_names and _matches_terms(blob, supplier_names):
+        matched_weight += 0.15
+    if organization_terms and _matches_terms(blob, organization_terms):
+        matched_weight += 0.05
+
+    return matched_weight / active_weight if active_weight else 0.0
+
+
+def _serialize_event(event: EventRecord) -> dict:
+    return {
+        "id": event.id,
+        "event_id": event.id,
+        "unified_record_id": event.unified_record_id,
+        "source": event.source,
+        "timestamp": event.timestamp.isoformat(),
+        "category": event.category,
+        "summary": event.summary,
+        "location": event.location,
+        "severity": event.severity,
+        "entities": event.entities_json,
+    }
+
+
+def _serialize_risk(risk: RiskRecord, event: EventRecord, supplier: Supplier | None) -> dict:
+    return {
+        "risk_id": risk.id,
+        "event_id": event.id,
+        "supplier": supplier.name if supplier else None,
+        "risk_score": risk.risk_score,
+        "alert_level": risk.alert_level,
+        "features": risk.feature_json,
+        "explanation": _build_explanation(event, supplier),
+    }
+
+
+def _serialize_alert(risk: RiskRecord, event: EventRecord, supplier: Supplier | None) -> dict:
+    return {
+        "id": risk.id,
+        "event_id": event.id,
+        "risk_score": risk.risk_score,
+        "alert_level": risk.alert_level,
+        "summary": event.summary,
+        "supplier": supplier.name if supplier else None,
+        "explanation": _build_explanation(event, supplier),
+        "timestamp": event.timestamp.isoformat(),
+        "source": event.source,
+        "location": event.location,
+        "entities": event.entities_json,
+        "features": risk.feature_json,
+    }
+
+
+@router.post("/pipeline/onboard")
+async def run_onboarded_pipeline(payload: OnboardingRequest, limit: int = 100, db: Session = Depends(get_db)) -> dict:
+    ingestion_result = await run_ingestion_job()
+    event_result = build_structured_events(db, limit=limit)
+    risk_result = score_events(db, limit=limit)
+
+    min_level = _risk_threshold_for_appetite(payload.experience_risk_appetite)
+    threshold = ALERT_ORDER.get(min_level, ALERT_ORDER["Medium"])
+
+    rows = db.execute(
+        select(RiskRecord, EventRecord, Supplier)
+        .join(EventRecord, EventRecord.id == RiskRecord.event_id)
+        .outerjoin(Supplier, Supplier.id == RiskRecord.supplier_id)
+        .order_by(desc(RiskRecord.risk_score))
+        .limit(limit * 5)
+    ).all()
+
+    filtered_rows: list[tuple[RiskRecord, EventRecord, Supplier | None, float]] = []
+    for risk, event, supplier in rows:
+        if ALERT_ORDER.get(risk.alert_level, 0) < threshold:
+            continue
+
+        relevance = _profile_relevance(event, supplier, payload)
+        if relevance < 0.35:
+            continue
+
+        filtered_rows.append((risk, event, supplier, relevance))
+
+    filtered_rows = filtered_rows[:limit]
+    events = [_serialize_event(event) for _, event, _, _ in filtered_rows]
+    risk_items = [_serialize_risk(risk, event, supplier) for risk, event, supplier, _ in filtered_rows]
+    alerts = [_serialize_alert(risk, event, supplier) for risk, event, supplier, _ in filtered_rows]
+
+    session_data = {
+        "session_id": f"onboard-{uuid4().hex[:16]}",
+        "company_domain": payload.company_domain.strip(),
+        "supplier_regions": _normalize_terms(payload.supplier_regions),
+        "critical_commodities": _normalize_terms(payload.critical_commodities),
+        "supplier_names": _normalize_terms(payload.supplier_names),
+        "organization_type": payload.organization_type.strip(),
+        "experience_risk_appetite": payload.experience_risk_appetite.strip(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    if graph_service.enabled:
+        graph_service.upsert_onboarding_session(session_data=session_data, rows=filtered_rows and [
+            {
+                "event_id": event.id,
+                "event_type": event.category,
+                "severity": float(event.severity),
+                "timestamp": event.timestamp.isoformat(),
+                "headline": event.summary[:240],
+                "base_risk_score": float(risk.feature_json.get("base_risk_score", risk.risk_score)),
+                "composite_risk_score": float(risk.risk_score),
+                "country": (event.entities_json.get("countries", []) or [event.location])[0] if isinstance(event.entities_json, dict) else event.location,
+                "port": (event.entities_json.get("ports", []) or [None])[0] if isinstance(event.entities_json, dict) else None,
+                "commodity": (event.entities_json.get("commodities", []) or [None])[0] if isinstance(event.entities_json, dict) else None,
+                "supplier_id": supplier.id if supplier else None,
+                "supplier_name": supplier.name if supplier else None,
+                "supplier_country": supplier.country if supplier else None,
+                "supplier_criticality": float(risk.feature_json.get("supplier_criticality", supplier.importance if supplier else 1.0)),
+                "manufacturer_id": "onboarded_manufacturer",
+                "manufacturer_name": payload.organization_type.strip() or "SCOUT Manufacturer",
+                "risk_exposure_score": float(risk.risk_score),
+                "path_weight": float(risk.feature_json.get("path_weight", 1.0)),
+                "affects_country_weight": 0.7,
+                "affects_port_weight": 0.9,
+                "affects_commodity_weight": 0.8,
+                "located_in_weight": 0.7,
+                "ships_through_weight": 0.8,
+                "provides_weight": 0.8,
+            }
+            for risk, event, supplier, _ in filtered_rows
+        ] or [])
+
+    return {
+        "ingestion": ingestion_result,
+        "structure": event_result,
+        "risk": risk_result,
+        "filters": session_data,
+        "counts": {
+            "events": len(events),
+            "risk_items": len(risk_items),
+            "alerts": len(alerts),
+        },
+        "events": events,
+        "riskItems": risk_items,
+        "alerts": alerts,
+    }
 
 
 def _build_explanation(event: EventRecord, supplier: Supplier | None) -> str:

@@ -12,10 +12,44 @@ from app.core.config import settings
 from app.ingestion.connectors.base import SourceConnector
 from app.ingestion.schema import NormalizedRecord
 
-
 class FREDConnector(SourceConnector):
     name = "fred"
     series_ids = ("CPIAUCSL", "UNRATE", "FEDFUNDS")
+
+    @staticmethod
+    def _indicator_type(series_id: str) -> str:
+        mapping = {
+            "CPIAUCSL": "inflation",
+            "UNRATE": "unemployment",
+            "FEDFUNDS": "interest_rate",
+        }
+        return mapping.get(series_id, "economic_indicator")
+
+    def _build_semantic_text(self, *, series_id: str, value: str, date: str) -> str:
+        try:
+            numeric_value = float(value)
+        except Exception:
+            numeric_value = value
+
+        if series_id == "CPIAUCSL":
+            return (
+                f"US inflation index reached {numeric_value} on {date}, "
+                "indicating inflationary economic pressure."
+            )
+
+        if series_id == "UNRATE":
+            return (
+                f"US unemployment rate recorded {numeric_value}% on {date}, "
+                "reflecting labor market conditions."
+            )
+
+        if series_id == "FEDFUNDS":
+            return (
+                f"US Federal Reserve interest rate reached {numeric_value}% on {date}, "
+                "impacting borrowing costs and economic activity."
+            )
+
+        return f"Economic indicator {series_id} recorded value {numeric_value} on {date}."
 
     async def _fetch_observations(
         self,
@@ -47,14 +81,25 @@ class FREDConnector(SourceConnector):
             except ValueError:
                 timestamp = datetime.now(timezone.utc)
 
+            indicator_type = self._indicator_type(series_id)
             records.append(
                 NormalizedRecord.with_defaults(
                     source=self.name,
                     source_id=f"{series_id}:{date}",
-                    text=f"FRED {series_id} = {value} at {date}",
+                    text=self._build_semantic_text(series_id=series_id, value=value, date=date),
                     timestamp=timestamp,
                     location="US",
-                    metadata={"series_id": series_id, "value": value, "date": date},
+                    country="US",
+                    region="North America",
+                    category="economic",
+                    event_key=f"fred:{series_id}:{date}",
+                    metadata={
+                        "series_id": series_id,
+                        "value": value,
+                        "date": date,
+                        "indicator_type": indicator_type,
+                        "source_kind": "macroeconomic_context",
+                    },
                 )
             )
 

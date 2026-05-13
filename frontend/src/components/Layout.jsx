@@ -3,11 +3,13 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import FaultyTerminal from "@/components/FaultyTerminal";
 import FlowingMenu from "@/components/FlowingMenu";
+import OnboardingModal from "@/components/OnboardingModal";
 
 export default function Layout({ children, onRunPipeline, running }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
 
   useEffect(() => {
     const onKeyDown = (event) => {
@@ -85,8 +87,8 @@ export default function Layout({ children, onRunPipeline, running }) {
                 <span />
               </span>
             </button>
-            <button className="cta" onClick={onRunPipeline} disabled={running}>
-              {running ? "Running..." : "Run Full Pipeline"}
+            <button className="cta" type="button" onClick={() => setOnboardingOpen(true)} disabled={running}>
+              {running ? "Working..." : "Onboard"}
             </button>
           </div>
         </header>
@@ -140,6 +142,16 @@ export default function Layout({ children, onRunPipeline, running }) {
 
         <main className="content">{children}</main>
       </div>
+
+      <OnboardingModal
+        open={onboardingOpen}
+        loading={running}
+        onClose={() => setOnboardingOpen(false)}
+        onSubmit={async (payload) => {
+          await onRunPipeline(payload);
+          setOnboardingOpen(false);
+        }}
+      />
     </div>
   );
 }

@@ -6,15 +6,22 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from app.core.config import settings
 from app.db.session import SessionLocal
 from app.ingestion.service import ingestion_service
+from app.pipeline.orchestrator import IntelligencePipeline
 
 scheduler = AsyncIOScheduler()
 logger = logging.getLogger(__name__)
 
+pipeline = IntelligencePipeline(
+    collect_stage=ingestion_service.collect_with_stats,
+    persist_stage=ingestion_service.save,
+    session_factory=SessionLocal,
+)
+
 
 async def run_ingestion_job() -> dict:
     try:
-        records, source_counts, errors = await asyncio.wait_for(
-            ingestion_service.collect_with_stats(),
+        result = await asyncio.wait_for(
+            pipeline.run(),
             timeout=settings.ingestion_job_timeout_seconds,
         )
     except TimeoutError:
@@ -29,33 +36,20 @@ async def run_ingestion_job() -> dict:
             "errors": [{"source": "scheduler", "error": "ingestion job timeout"}],
         }
 
-    try:
-        with SessionLocal() as db:
-            save_result = ingestion_service.save(db, records)
     except Exception as exc:  # noqa: BLE001
         logger.exception("DB session failed during ingestion job", exc_info=exc)
         return {
             "status": "error",
-            "fetched_total": len(records),
+            "fetched_total": 0,
             "inserted": 0,
             "duplicates": 0,
-            "error_count": len(errors) + 1,
-            "source_counts": source_counts,
-            "errors": errors + [{"source": "database", "error": str(exc)}],
+            "error_count": 1,
+            "source_counts": {},
+            "errors": [{"source": "pipeline", "error": str(exc)}],
             "db_error": str(exc),
         }
 
-    status = "ok" if not errors else "partial_failure"
-
-    return {
-        "status": status,
-        "fetched_total": len(records),
-        "inserted": save_result["inserted"],
-        "duplicates": save_result["duplicates"],
-        "error_count": len(errors),
-        "source_counts": source_counts,
-        "errors": errors,
-    }
+    return result
 
 
 def start_scheduler() -> None:

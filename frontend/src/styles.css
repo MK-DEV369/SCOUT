@@ -453,6 +453,87 @@ body {
   cursor: not-allowed;
 }
 
+.onboarding-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 32;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(2, 7, 12, 0.72);
+  backdrop-filter: blur(10px);
+}
+
+.onboarding-modal {
+  width: min(760px, 100%);
+  max-height: min(90vh, 920px);
+  overflow: auto;
+  border: 1px solid rgba(167, 239, 158, 0.25);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(13, 30, 47, 0.98), rgba(9, 19, 31, 0.98));
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+  padding: 22px;
+}
+
+.onboarding-modal__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+
+.onboarding-modal__header h2 {
+  margin: 0 0 8px;
+}
+
+.onboarding-form {
+  display: grid;
+  gap: 14px;
+}
+
+.onboarding-form label {
+  display: grid;
+  gap: 8px;
+}
+
+.onboarding-form span {
+  color: #dbeaff;
+  font-weight: 600;
+}
+
+.onboarding-form textarea,
+.onboarding-form select {
+  width: 100%;
+  resize: vertical;
+  background: #0d1b2b;
+  border: 1px solid #35506b;
+  border-radius: 12px;
+  color: var(--ink);
+  padding: 12px;
+  font: inherit;
+}
+
+.onboarding-form input {
+  width: 100%;
+}
+
+.onboarding-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.onboarding-error {
+  border: 1px solid rgba(239, 71, 111, 0.4);
+  background: rgba(239, 71, 111, 0.12);
+  color: #ffd8e1;
+  border-radius: 12px;
+  padding: 12px;
+}
+
 .table-wrap {
   overflow-x: auto;
 }

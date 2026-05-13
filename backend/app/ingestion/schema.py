@@ -9,8 +9,23 @@ class NormalizedRecord(BaseModel):
     timestamp: datetime
     text: str = Field(min_length=1)
     location: str | None = None
-    metadata: dict[str, Any] = Field(default_factory=dict)
     source_id: str | None = None
+
+    country: str | None = None
+    region: str | None = None
+    category: str | None = None
+
+    entities: list[str] = Field(default_factory=list)
+    relationships: list[dict[str, Any]] = Field(default_factory=list)
+    sentiment: str | None = None
+    severity_score: float | None = None
+    embedding: list[float] | None = None
+    summary: str | None = None
+
+    risk_score: float | None = None
+    event_key: str | None = None
+
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
     @classmethod
     def with_defaults(
@@ -20,15 +35,37 @@ class NormalizedRecord(BaseModel):
         text: str,
         timestamp: datetime | None = None,
         location: str | None = None,
+        country: str | None = None,
+        region: str | None = None,
+        category: str | None = None,
         metadata: dict[str, Any] | None = None,
         source_id: str | None = None,
+        event_key: str | None = None,
+        entities: list[str] | None = None,
+        relationships: list[dict[str, Any]] | None = None,
+        sentiment: str | None = None,
+        severity_score: float | None = None,
+        embedding: list[float] | None = None,
+        summary: str | None = None,
+        risk_score: float | None = None,
     ) -> "NormalizedRecord":
         ts = timestamp or datetime.now(timezone.utc)
         return cls(
             source=source,
-            text=text.strip(),
             timestamp=ts,
-            location=location,
-            metadata=metadata or {},
             source_id=source_id,
+            text=text.strip(),
+            location=location,
+            country=country,
+            region=region,
+            category=category,
+            entities=entities or [],
+            relationships=relationships or [],
+            sentiment=sentiment,
+            severity_score=severity_score,
+            embedding=embedding,
+            summary=summary,
+            risk_score=risk_score,
+            event_key=event_key,
+            metadata=metadata or {},
         )

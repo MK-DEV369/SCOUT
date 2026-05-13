@@ -1,90 +1,99 @@
-from datetime import datetime, timedelta, timezone
-import httpx
-from app.core.config import settings
+from datetime import datetime, timezone
+from pathlib import Path
+
+import pandas as pd
+
 from app.ingestion.connectors.base import SourceConnector
 from app.ingestion.schema import NormalizedRecord
 
+
 class ACLEDConnector(SourceConnector):
     name = "acled"
-
-    def __init__(self) -> None:
-        self._access_token: str | None = None
-        self._token_expires_at: datetime | None = None
-
-    async def _get_access_token(self, client: httpx.AsyncClient) -> str | None:
-        # Explicit token from env takes precedence.
-        if settings.acled_access_token:
-            return settings.acled_access_token
-
-        now = datetime.now(timezone.utc)
-        if self._access_token and self._token_expires_at and now < self._token_expires_at:
-            return self._access_token
-
-        if not settings.acled_username or not settings.acled_password:
-            raise RuntimeError("ACLED_USERNAME and ACLED_PASSWORD or ACLED_ACCESS_TOKEN must be configured")
-
-        response = await client.post(
-            settings.acled_auth_url,
-            data={
-                "username": settings.acled_username,
-                "password": settings.acled_password,
-                "grant_type": "password",
-                "client_id": settings.acled_client_id,
-            },
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-        )
-        if response.status_code >= 400:
-            raise RuntimeError(f"ACLED auth failed with status {response.status_code}")
-
-        payload = response.json()
-        access_token = payload.get("access_token")
-        expires_in = int(payload.get("expires_in", 0))
-        if not access_token:
-            raise RuntimeError("ACLED auth response did not contain an access token")
-
-        self._access_token = access_token
-        # Renew one minute earlier to avoid edge expiries.
-        buffer_seconds = 60 if expires_in > 60 else 0
-        self._token_expires_at = now + timedelta(seconds=max(expires_in - buffer_seconds, 0))
-        return self._access_token
+    DATA_DIR = Path("backend/data/acled")
 
     async def fetch(self) -> list[NormalizedRecord]:
-        params = {"limit": 100, "event_date_where": ">=", "event_date": "2025-01-01"}
-        async with httpx.AsyncClient(timeout=20) as client:
-            token = await self._get_access_token(client)
-            headers = {"Authorization": f"Bearer {token}"} if token else {}
-            response = await client.get(settings.acled_base_url, params=params, headers=headers)
-            response.raise_for_status()
-            payload = response.json()
-
         records: list[NormalizedRecord] = []
-        for event in payload.get("data", []):
-            event_date = event.get("event_date")
-            timestamp = datetime.now(timezone.utc)
-            if event_date:
-                try:
-                    timestamp = datetime.strptime(event_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-                except ValueError:
-                    pass
+        excel_files = sorted(self.DATA_DIR.glob("*.xlsx"))
 
-            text = " ".join(
-                [
-                    event.get("event_type") or "",
-                    event.get("sub_event_type") or "",
-                    event.get("notes") or "",
-                ]
-            ).strip()
-            if not text:
-                continue
+        for file_path in excel_files:
+            try:
+                df = pd.read_excel(file_path)
+                df.columns = [str(c).strip().lower() for c in df.columns]
 
-            records.append(
-                NormalizedRecord.with_defaults(
-                    source=self.name,
-                    source_id=event.get("event_id_cnty"),
-                    text=text,
-                    timestamp=timestamp,
-                    location=event.get("location") or event.get("country"),
-                    metadata=event,
-                )
-            )
+                for idx, row in df.iterrows():
+                    country = self._safe_get(row, ["country", "admin1", "region", "location"])
+                    event_type = self._safe_get(row, ["event_type", "sub_event_type", "disorder_type"])
+                    actor1 = self._safe_get(row, ["actor1", "actor"])
+                    fatalities = self._safe_get(row, ["fatalities", "fatality_count"])
+                    notes = self._safe_get(row, ["notes", "description"])
+                    event_date = self._safe_get(row, ["event_date", "date"])
+
+                    timestamp = datetime.now(timezone.utc)
+                    if event_date:
+                        try:
+                            parsed = pd.to_datetime(event_date).to_pydatetime()
+                            timestamp = parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+                        except Exception:
+                            pass
+
+                    text = self._build_semantic_text(
+                        actor1=actor1,
+                        event_type=event_type,
+                        country=country,
+                        fatalities=fatalities,
+                        notes=notes,
+                    )
+                    if not text.strip():
+                        continue
+
+                    records.append(
+                        NormalizedRecord.with_defaults(
+                            source=self.name,
+                            source_id=f"{file_path.stem}_{idx}",
+                            text=text,
+                            timestamp=timestamp,
+                            location=country or None,
+                            metadata={
+                                "source_file": file_path.name,
+                                "country": country,
+                                "event_type": event_type,
+                                "actor1": actor1,
+                                "fatalities": fatalities,
+                                "notes": notes,
+                            },
+                        )
+                    )
+            except Exception as exc:
+                print(f"[ACLED] Failed processing {file_path}: {exc}")
+
         return records
+
+    def _safe_get(self, row: pd.Series, keys: list[str]) -> str:
+        for key in keys:
+            if key in row and pd.notna(row[key]):
+                return str(row[key]).strip()
+        return ""
+
+    def _build_semantic_text(
+        self,
+        *,
+        actor1: str,
+        event_type: str,
+        country: str,
+        fatalities: str,
+        notes: str,
+    ) -> str:
+        parts: list[str] = []
+        if actor1:
+            parts.append(actor1)
+        if event_type:
+            parts.append(f"involved in {event_type}")
+        if country:
+            parts.append(f"in {country}")
+        if fatalities:
+            parts.append(f"causing {fatalities} fatalities")
+
+        sentence = " ".join(parts).strip()
+        if notes:
+            sentence = f"{sentence}. {notes}" if sentence else notes
+        return sentence.strip()

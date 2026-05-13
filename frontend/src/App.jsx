@@ -37,13 +37,13 @@ export default function App() {
     setSuppliers(readItems(supplierResult, "suppliers"));
   }
 
-  async function runPipeline() {
+  async function runPipeline(onboarding) {
     try {
       setRunning(true);
-      await api.ingest();
-      await api.buildEvents();
-      await api.scoreRisk();
-      await refreshAll();
+      const result = await api.runPipeline(onboarding);
+      setAlerts(result.alerts || []);
+      setRiskItems(result.riskItems || []);
+      setEvents(result.events || []);
     } finally {
       setRunning(false);
     }

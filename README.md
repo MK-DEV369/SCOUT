@@ -271,6 +271,9 @@ Set-Location E:\6th SEM Data\Projects\SCOUT_MainEL\frontend
 npm run dev
 ```
 
+after running backend: 
+ngrok http --url=disprove-overlook-abdominal.ngrok-free.dev 8000
+
 App URLs:
 
 - Frontend home: `http://127.0.0.1:8000/#/`

@@ -41,6 +41,7 @@ class GraphService:
                 "CREATE INDEX risk_event_id_index IF NOT EXISTS FOR (e:RiskEvent) ON (e.event_id)",
                 "CREATE INDEX supplier_id_index IF NOT EXISTS FOR (s:Supplier) ON (s.supplier_id)",
                 "CREATE INDEX manufacturer_id_index IF NOT EXISTS FOR (m:Manufacturer) ON (m.manufacturer_id)",
+                "CREATE INDEX onboarding_session_id_index IF NOT EXISTS FOR (o:OnboardingSession) ON (o.session_id)",
             ]
             with self._driver.session(database=self._database) as session:
                 for stmt in statements:
@@ -115,6 +116,51 @@ class GraphService:
         """
         with self._driver.session(database=self._database) as session:
             session.run(query, rows=rows)
+
+    def upsert_onboarding_session(self, *, session_data: dict, rows: list[dict]) -> None:
+        if not self._driver:
+            return
+
+        self._ensure_indexes()
+        if rows:
+            self.upsert_risk_paths_batch(rows)
+
+        query = """
+        MERGE (o:OnboardingSession {session_id: $session_id})
+        SET o.company_domain = $company_domain,
+            o.supplier_regions = $supplier_regions,
+            o.critical_commodities = $critical_commodities,
+            o.supplier_names = $supplier_names,
+            o.organization_type = $organization_type,
+            o.experience_risk_appetite = $experience_risk_appetite,
+            o.updated_at = datetime($updated_at)
+
+        WITH o
+        UNWIND $rows AS row
+        MERGE (e:RiskEvent {event_id: row.event_id})
+        MERGE (o)-[r:MONITORS_EVENT]->(e)
+        SET r.synced_at = datetime($updated_at)
+
+        FOREACH (_ IN CASE WHEN row.supplier_id IS NULL THEN [] ELSE [1] END |
+            MERGE (s:Supplier {supplier_id: row.supplier_id})
+            MERGE (o)-[m:TRACKS_SUPPLIER]->(s)
+            SET m.synced_at = datetime($updated_at)
+        )
+        """
+
+        with self._driver.session(database=self._database) as session:
+            session.run(
+                query,
+                session_id=session_data["session_id"],
+                company_domain=session_data.get("company_domain"),
+                supplier_regions=session_data.get("supplier_regions", []),
+                critical_commodities=session_data.get("critical_commodities", []),
+                supplier_names=session_data.get("supplier_names", []),
+                organization_type=session_data.get("organization_type"),
+                experience_risk_appetite=session_data.get("experience_risk_appetite"),
+                updated_at=session_data.get("updated_at"),
+                rows=rows,
+            )
 
     def estimate_path_weight(self, *, event_id: int, supplier_id: int | None) -> float:
         if not self._driver or supplier_id is None:

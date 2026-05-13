@@ -11,13 +11,32 @@ from app.db.models import RawIngestionRecord, UnifiedRecord
 from app.ingestion.connectors.acled import ACLEDConnector
 from app.ingestion.connectors.base import SourceConnector
 from app.ingestion.connectors.fred import FREDConnector
-from app.ingestion.connectors.freightos import FreightosConnector
 from app.ingestion.connectors.gdelt import GDELTConnector
 from app.ingestion.connectors.google_news import GoogleNewsConnector
 from app.ingestion.connectors.newsapi import NewsAPIConnector
 from app.ingestion.connectors.worldbank import WorldBankConnector
 from app.ingestion.dedup import compute_content_hash
 from app.ingestion.schema import NormalizedRecord
+
+
+def _stage_metadata(item: NormalizedRecord) -> dict:
+    metadata = dict(item.metadata or {})
+    metadata.update(
+        {
+            "country": item.country,
+            "region": item.region,
+            "category": item.category,
+            "entities": item.entities,
+            "relationships": item.relationships,
+            "sentiment": item.sentiment,
+            "severity_score": item.severity_score,
+            "embedding": item.embedding,
+            "summary": item.summary,
+            "risk_score": item.risk_score,
+            "event_key": item.event_key,
+        }
+    )
+    return {key: value for key, value in metadata.items() if value not in (None, [], {}, "")}
 
 
 class IngestionService:
@@ -30,8 +49,6 @@ class IngestionService:
             ACLEDConnector(),
             FREDConnector(),
         ]
-        if settings.enable_freightos:
-            self.connectors.append(FreightosConnector())
 
     @property
     def _logger(self) -> logging.Logger:
@@ -99,7 +116,7 @@ class IngestionService:
                     timestamp=item.timestamp,
                     text=item.text,
                     location=item.location,
-                    metadata_json=item.metadata,
+                    metadata_json=_stage_metadata(item),
                     content_hash=hash_value,
                 )
                 db.add(raw)
