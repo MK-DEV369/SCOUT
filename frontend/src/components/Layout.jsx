@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-
+import { Binoculars } from "lucide-react";
 import FaultyTerminal from "@/components/FaultyTerminal";
 import FlowingMenu from "@/components/FlowingMenu";
 import OnboardingModal from "@/components/OnboardingModal";
@@ -72,7 +72,10 @@ export default function Layout({ children, onRunPipeline, running }) {
       <div className="app-content-layer">
         <header className="topbar">
           <div>
-            <h1>SCOUT Control Tower</h1>
+            <div className="flex items-center gap-3">
+              <Binoculars size={32} strokeWidth={1.5} />
+              <h1>SCOUT</h1>
+            </div>
             <p>Operational supply chain intelligence across ingestion, NLP, graph propagation, and mitigation.</p>
           </div>
           <div className="topbar-actions">

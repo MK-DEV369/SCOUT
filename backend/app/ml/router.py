@@ -301,14 +301,23 @@ async def route_intelligence_async(kind: str, text: str, context: dict[str, Any]
     return fallback
 
 
-def generate_summary(text: str, context: dict[str, Any] | None = None) -> tuple[str, float]:
-    result = asyncio.run(route_intelligence_async("summary", text, context))
+async def generate_summary(
+    text: str,
+    context: dict[str, Any] | None = None,
+) -> tuple[str, float]:
+    result = await route_intelligence_async("summary", text, context)
     return result["summary"], float(result["confidence"])
 
 
-def generate_mitigation(text: str, context: dict[str, Any] | None = None) -> dict[str, Any]:
-    return asyncio.run(route_intelligence_async("mitigation", text, context))
+async def generate_mitigation(
+    text: str,
+    context: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    return await route_intelligence_async("mitigation", text, context)
 
 
-def generate_executive_report(text: str, context: dict[str, Any] | None = None) -> dict[str, Any]:
-    return asyncio.run(route_intelligence_async("executive_report", text, context))
+async def generate_executive_report(
+    text: str,
+    context: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    return await route_intelligence_async("executive_report", text, context)

@@ -72,7 +72,7 @@ def list_records(limit: int = 100, db: Session = Depends(get_db)) -> dict[str, l
     return {"items": payload}
 
 
-@router.get("/api/v1/events/{event_id}/explain")
+@router.get("/events/{event_id}/explain")
 def get_event_explanation(event_id: int, db: Session = Depends(get_db)) -> dict:
     """Get detailed explainability for why this event was classified/extracted."""
     event = db.query(EventRecord).filter(EventRecord.id == event_id).first()

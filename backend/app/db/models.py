@@ -89,3 +89,17 @@ class EventEmbedding(Base):
     embedding: Mapped[dict] = mapped_column(JSON, default=dict)
     cluster_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+
+class OnboardingEmbedding(Base):
+    __tablename__ = "onboarding_embeddings"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    session_id: Mapped[str] = mapped_column(String(100), index=True)
+    organization_type: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    commodities: Mapped[dict] = mapped_column(JSON, default=dict)
+    regions: Mapped[dict] = mapped_column(JSON, default=dict)
+    suppliers: Mapped[dict] = mapped_column(JSON, default=dict)
+    risk_appetite: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    embedding: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)

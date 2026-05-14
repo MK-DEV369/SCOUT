@@ -1,28 +1,34 @@
 # SCOUT MainEL - Phase 3 NLP Layer
 
-## Current Implementation Status (2026-04-30)
+## Current Implementation Status (2026-05-14)
 
-Overall completion (code present and wired): ~78%
+Overall completion (code present and wired): ~82%
 
-- Completed:
+-- Completed:
   - Multi-source ingestion connectors (GDELT, Google News, NewsAPI, World Bank, ACLED, FRED; Freightos optional)
   - Unified normalization + hash dedup + raw/unified persistence
-  - NLP pipeline wiring (entity extraction + classification + summarization)
+  - NLP pipeline wiring (entity extraction + classification + summarization + embeddings)
+  - Fine-tuned classifier training script plus evaluation harness for labeled JSONL data
+  - Event clustering path with embedding persistence and cluster assignment support
   - Risk scoring pipeline with alert levels and feature breakdown in API payload
   - Graph integration hooks and graph API endpoints
+  - Databricks notebook orchestration for backend health checks and clustering runs
   - Frontend pages wired to live backend APIs
-  - API health checks and ingestion fallback file path handling
+  - API health checks, source-aware NLP routing, and fallback path handling
+  - Debug logging added across classifier, embeddings, clustering, and event build stages
 
-- Partially completed:
+-- Partially completed:
   - Connector resiliency (timeouts and graceful per-source failure are present; retry/backoff/rate-limit policies are not fully implemented)
   - Explainability (alert-level explanation text and risk features are present; factor decomposition endpoint/reporting is still basic)
   - Operations hardening (works for local dev but needs stronger deployment-grade controls)
 
-- Pending:
+-- Pending:
   - Automated test suite (unit/integration/frontend)
-  - Alembic migrations
+  - Alembic migrations as a formal workflow
   - Source freshness/health metrics endpoint per connector
   - Formal contract tests and performance SLO validation
+  - Active learning loop for analyst feedback and retraining
+  - Relationship extraction for multihop graph materialization
 
 This repository now includes a full **Phase 2 ingestion stack** for multi-source global risk/supply intelligence:
 
@@ -38,9 +44,20 @@ The pipeline normalizes all inputs into a common schema, performs SHA-256 dedupl
 It now also includes **Phase 3-6 delivery**:
 
 - NLP pipeline (NER + event classification + summarization)
+- SentenceTransformer embeddings for retrieval and clustering
+- Event clustering and cluster persistence for operational grouping
+- Databricks-backed validation notebook for backend orchestration
 - Risk scoring engine with alert levels
 - Neo4j knowledge graph propagation hooks
 - API endpoints for ingest/events/risk/alerts/suppliers
+
+## Latest Updates (2026-05-14)
+
+- Added stage-by-stage debug logging to the NLP/ML path so you can verify each module during runtime.
+- Hardened the clustering path so `/api/v1/ml/cluster/run` handles existing embeddings safely and does not fail on empty or invalid vectors.
+- Updated the Databricks notebook to read `backend_base_url` from a widget or environment variable instead of relying on a hard-coded value.
+- Kept the classifier/evaluator flow aligned so the evaluation harness reads the classifier payload correctly.
+- Extended the report and backend comments to reflect which modules are integrated and which are still pending.
 
 ## Architecture
 
@@ -106,12 +123,17 @@ backend/
       routes.py
       ml_routes.py
       phase_routes.py
+      graph_routes.py
+      schemas.py
     core/
       config.py
     db/
       base.py
       models.py
       session.py
+    enrichment/
+      record_enricher.py
+      semantic_text_builder.py
     ingestion/
       dedup.py
       schema.py
@@ -124,25 +146,42 @@ backend/
         worldbank.py
         acled.py
         fred.py
+    integration/
+      databricks.py
     ml/
       models.py
+      manager.py
+      router.py
     nlp/
       entity_extractor.py
       event_classifier.py
+      embeddings.py
+      explainability.py
       summarizer.py
+      clustering.py
       pipeline.py
       schemas.py
+    pipeline/
+      orchestrator.py
     risk/
       engine.py
       pipeline.py
     graph/
       neo4j_client.py
+      graph_builder.py
     training/
       finetune_event_classifier.py
+      evaluate_classifier.py
     main.py
+  notebooks/
+    databricks_cluster_job.ipynb
 frontend/
   index.html
   package.json
+  vite.config.js
+  tailwind.config.js
+  tsconfig.json
+  jsconfig.json
   src/
     App.jsx
     api.js
@@ -155,8 +194,15 @@ frontend/
       AlertsPage.jsx
       SuppliersPage.jsx
       AnalyticsPage.jsx
+  components.json
 requirements.txt
 .env.example
+alembic/
+  env.py
+  versions/
+    0001_add_nlp_columns.py
+    0002_add_summary_confidence.py
+DETAILED_COMPREHENSIVE_REPORT.md
 ```
 
 ## Quickstart
@@ -476,12 +522,21 @@ Duplicate hashes are skipped before insert.
 - Ensure Databricks job trigger remains mandatory at startup; set `DATABRICKS_HOST`, `DATABRICKS_TOKEN`, and `DATABRICKS_DEFAULT_JOB_ID` in your environment before running the app.
 - Added `sentence-transformers` to `requirements.txt`.
 
+### 2026-05-14 Updates
+
+- Added debug logging in the classifier, embeddings, clustering, and structured event pipeline so you can trace each step independently.
+- Updated `backend/app/nlp/pipeline.py` to use the current summarizer and clustering flow, including event persistence with source metadata.
+- Hardened `backend/app/nlp/clustering.py` to upsert embeddings, skip invalid vectors, and cap cluster sizing safely.
+- Updated `backend/app/api/ml_routes.py` so the cluster endpoint accepts the notebook’s `n_clusters` parameter.
+- Updated `backend/notebooks/databricks_cluster_job.ipynb` to resolve `backend_base_url` from a widget or environment variable.
+
 ## Next Recommended Steps
 
 1. Add Alembic migrations for production-safe schema evolution.
 2. Add retry/backoff and rate-limit handling per connector.
-3. Add test coverage for normalization and dedup modules.
-4. Add a message queue (Celery + Redis) for higher-volume ingestion workloads.
+3. Add test coverage for normalization, NLP, clustering, and API contracts.
+4. Add per-source health/freshness metrics and structured observability.
+5. Add an active learning feedback loop for analyst corrections.
 
 ## Team Plan & Next Phases
 

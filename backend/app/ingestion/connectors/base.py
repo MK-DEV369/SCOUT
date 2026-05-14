@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 from app.ingestion.schema import NormalizedRecord
 
 
-# Define source credibility scores (0.0-1.0)
 SOURCE_CREDIBILITY = {
     "gdelt": 0.70,           # Curated event database
     "newsapi": 0.65,         # News aggregator (lower due to bias)
@@ -13,7 +12,6 @@ SOURCE_CREDIBILITY = {
     "freightos": 0.80,       # Shipping data provider
     "google_news": 0.60      # News feed (varies by outlet)
 }
-
 
 class SourceConnector(ABC):
     name: str

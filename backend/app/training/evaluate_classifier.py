@@ -8,8 +8,22 @@ If `scikit-learn` is not installed the script will print instructions.
 import argparse
 import json
 from pathlib import Path
+from typing import Any
 
 from app.nlp.event_classifier import classify_event
+
+
+def _extract_label(prediction: Any) -> str:
+    if isinstance(prediction, dict):
+        label = prediction.get("primary_category")
+        if label:
+            return str(label)
+        return "economic_stress"
+
+    if isinstance(prediction, (list, tuple)) and prediction:
+        return str(prediction[0])
+
+    return "economic_stress"
 
 
 def evaluate_from_file(path: Path) -> None:
@@ -31,7 +45,7 @@ def evaluate_from_file(path: Path) -> None:
                 continue
             prediction = classify_event(text)
             y_true.append(label)
-            y_pred.append(str(prediction.get("primary_category", "economic_stress")))
+            y_pred.append(_extract_label(prediction))
 
     print(classification_report(y_true, y_pred, digits=4))
 

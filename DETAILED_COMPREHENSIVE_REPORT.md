@@ -13,6 +13,13 @@ Post-Audit Updates: 2026-04-30
 - Requirements: added `sentence-transformers` dependency to `requirements.txt` and documented the need to install `torch` separately (see README).
 - Databricks: startup Databricks job trigger remains mandatory; ensure `DATABRICKS_HOST`, `DATABRICKS_TOKEN`, and `DATABRICKS_DEFAULT_JOB_ID` environment variables are set before starting the app.
 
+Status Addendum: 2026-05-14
+
+- Debug instrumentation added across the NLP/ML pipeline so each stage can be traced independently in logs.
+- Backend clustering path hardened so Databricks can trigger `/ml/cluster/run` without relying on notebook-local assumptions.
+- Notebook integration updated to read `backend_base_url` from a widget or environment variable and avoid accidental blank URL overrides.
+- Report below reflects the current integrated surface and the remaining work that is still open.
+
 This document now includes an implementation reality-check against the repository state.
 
 ## 0. Implementation Snapshot (2026-04-27)
@@ -40,6 +47,59 @@ Not complete yet:
 - Migration tooling (Alembic)
 - Formal source health/freshness metrics endpoint
 - Production-grade observability/alerts pipeline
+
+## 0.1 Integration Detail Update (2026-05-14)
+
+Integrated now, in detail:
+
+- Ingestion normalization and deduplication
+   - Source connectors continue to feed `raw_ingestion_records` and `unified_records`.
+   - Google News RSS/XML support is integrated as an additional public source.
+   - Source-specific timeout and partial-failure behavior remains in place.
+
+- NLP event pipeline
+   - Entity extraction runs before classification on text sources.
+   - Event classification uses the local heuristic + model-aware hybrid classifier in `backend/app/nlp/event_classifier.py`.
+   - Summary generation uses the backend summarizer path in `backend/app/nlp/summarizer.py`.
+   - Embeddings are generated with the SentenceTransformer-backed embedding helper in `backend/app/nlp/embeddings.py`.
+   - Structured events persist classifier metadata, summary confidence, source URL, source credibility, entities, and clustering input rows.
+
+- Clustering and embedding maintenance
+   - `backend/app/nlp/clustering.py` now upserts embeddings instead of inserting duplicates blindly.
+   - Clustering skips invalid or empty vectors, caps cluster size against available vectors, and updates `cluster_id` back onto `EventEmbedding` rows.
+   - `/ml/cluster/run` accepts the notebook’s `n_clusters` parameter and routes it to the backend cluster analysis.
+
+- Databricks orchestration
+   - The Databricks notebook now resolves `backend_base_url` from a widget or environment variable.
+   - The notebook calls `/health`, `/ml/health`, `/ml/status`, and `/ml/cluster/run` in sequence to validate backend readiness.
+   - The notebook no longer depends on a hard-coded blank URL path that can be accidentally overwritten.
+
+- Backend observability
+   - `backend/app/nlp/pipeline.py` logs build start/end, per-record routing, embeddings, and clustering results.
+   - `backend/app/nlp/event_classifier.py` logs classification inputs, fallback behavior, and final decision metadata.
+   - `backend/app/nlp/embeddings.py` logs cache hits, fallback mode, and vector lengths.
+   - `backend/app/nlp/clustering.py` logs embedding storage, vector validation, clustering counts, and cluster assignments.
+   - `backend/app/api/ml_routes.py` logs cluster-run request parameters and completion counts.
+
+What is still remaining:
+
+- Automated tests
+   - No real unit/integration test coverage yet for ingestion, NLP, clustering, or API contracts.
+
+- Migration discipline
+   - Alembic usage is still incomplete as a formal workflow, even though models have evolved.
+
+- Stable source health telemetry
+   - There is still no dedicated per-source freshness/health endpoint with metrics.
+
+- Production observability
+   - Logging is now better, but counters, structured metrics, and alerting still need proper implementation.
+
+- Active learning loop
+   - Analyst feedback capture and periodic retraining are still planned, not fully implemented.
+
+- Graph reasoning depth
+   - Neo4j hooks exist, but relationship extraction and multihop graph materialization still need expansion.
 
 ## 1. Executive Summary
 
@@ -351,6 +411,26 @@ Practical conclusion after code audit (2026-04-27):
 
 - The platform is in late MVP stage and demonstrable end to end.
 - The main remaining work is engineering hardening (tests, migrations, reliability controls), not foundational architecture.
+
+## Team Assignment & Next Steps
+
+**Summary:** The implementation is at ~78% for the end-to-end MVP. To finish reliably and prepare a demo-ready build, split the remaining work among four focused contributors.
+
+**Team (4 people)**
+- **You (Lead — Backend & Integration):** finish connector reliability, create Alembic migration(s), add DB indexes, finalize ingestion health/freshness endpoints.
+- **Member 2 (NLP & ML):** tune classifier and summarizer, add confidence thresholds, implement evaluation harness and embedding maintenance routines.
+- **Member 3 (Frontend & UX):** add pagination/filtering, improve alert drill-down UX, handle empty/error states and integrate contract tests.
+- **Member 4 (Testing & DevOps):** implement unit/integration tests, set up CI, add metrics (counters for ingested/deduped/failed), prepare deployment scripts.
+
+**Concrete next milestones (4 weeks)**
+- Week 1-2: connector retry/backoff, Alembic initial migration, add 15 unit tests. Owners: You + Member 4.
+- Week 3: classifier calibration and storing classifier confidence; summarizer fallback improvements. Owner: Member 2.
+- Week 4: frontend pagination + alert UI polish; API contract tests integrated. Owners: Member 3 + You.
+
+**Priority focus (short list)**
+1. Reliability (ingestion timeouts, retries, rate-limits). 2. Schema migrations and indexes. 3. Tests & observability. 4. NLP calibration and explainability. 5. Frontend UX for explanations.
+
+Replace placeholder member titles with actual team names and adjust assignment as needed.
 
 Based on the SCOUT MainEL codebase analysis, here's the **complete software requirements list**:
 

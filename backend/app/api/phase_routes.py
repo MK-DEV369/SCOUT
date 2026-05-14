@@ -10,9 +10,9 @@ from sqlalchemy.orm import Session
 from app.db.models import EventRecord, RiskRecord, Supplier
 from app.graph.neo4j_client import graph_service
 from app.db.session import get_db
-from app.ingestion.scheduler import run_ingestion_job
-from app.nlp.pipeline import build_structured_events
-from app.risk.pipeline import score_events
+from app.nlp.embeddings import embed_text
+from app.db.models import EventEmbedding, OnboardingEmbedding
+from app.ml.router import generate_mitigation
 
 router = APIRouter(tags=["phase3-6"])
 
@@ -44,11 +44,16 @@ class OnboardingRequest(BaseModel):
 
 def _normalize_terms(values: list[str]) -> list[str]:
     terms: list[str] = []
+
     for value in values:
         for chunk in re.split(r"[,;\n]+", value or ""):
             normalized = chunk.strip()
-            if normalized and normalized.lower() not in {term.lower() for term in terms}:
+
+            if normalized and normalized.lower() not in {
+                term.lower() for term in terms
+            }:
                 terms.append(normalized)
+
     return terms
 
 
@@ -58,11 +63,13 @@ def _risk_threshold_for_appetite(appetite: str) -> str:
         "balanced": "Medium",
         "aggressive": "High",
     }
+
     return mapping.get(appetite.strip().lower(), "Medium") if appetite else "Medium"
 
 
 def _text_blob(event: EventRecord, supplier: Supplier | None) -> str:
     entities = event.entities_json if isinstance(event.entities_json, dict) else {}
+
     parts: list[str] = [
         event.source or "",
         event.category or "",
@@ -71,30 +78,52 @@ def _text_blob(event: EventRecord, supplier: Supplier | None) -> str:
         supplier.name if supplier else "",
         supplier.country if supplier and supplier.country else "",
     ]
+
     for key in ("companies", "countries", "ports", "commodities"):
         values = entities.get(key, [])
+
         if isinstance(values, list):
             parts.extend(str(value) for value in values)
+
     return " ".join(parts).lower()
 
 
 def _matches_terms(blob: str, terms: list[str]) -> bool:
     if not terms:
         return True
+
     return any(term.lower() in blob for term in terms)
 
 
-def _profile_relevance(event: EventRecord, supplier: Supplier | None, payload: OnboardingRequest) -> float:
+def _profile_relevance(
+    event: EventRecord,
+    supplier: Supplier | None,
+    payload: OnboardingRequest,
+) -> float:
+
     blob = _text_blob(event, supplier)
+
     entity_terms = []
     entities = event.entities_json if isinstance(event.entities_json, dict) else {}
+
     for key in ("countries", "commodities", "companies", "ports"):
         values = entities.get(key, [])
+
         if isinstance(values, list):
             entity_terms.extend(str(value).lower() for value in values)
 
-    domain_terms = [term.lower() for term in re.split(r"[,;\n\-/]+", payload.company_domain or "") if term.strip()]
-    organization_terms = [term.lower() for term in re.split(r"[,;\n\-/]+", payload.organization_type or "") if term.strip()]
+    domain_terms = [
+        term.lower()
+        for term in re.split(r"[,;\n\-/]+", payload.company_domain or "")
+        if term.strip()
+    ]
+
+    organization_terms = [
+        term.lower()
+        for term in re.split(r"[,;\n\-/]+", payload.organization_type or "")
+        if term.strip()
+    ]
+
     supplier_regions = _normalize_terms(payload.supplier_regions)
     critical_commodities = _normalize_terms(payload.critical_commodities)
     supplier_names = _normalize_terms(payload.supplier_names)
@@ -108,104 +137,38 @@ def _profile_relevance(event: EventRecord, supplier: Supplier | None, payload: O
     ]
 
     active_weight = sum(weight for is_active, weight in criteria if is_active)
+
     if not active_weight:
         return 1.0
 
-    # Re-evaluate each active criterion independently so the score reflects the actual hit pattern.
     matched_weight = 0.0
+
     if domain_terms and _matches_terms(blob, domain_terms):
         matched_weight += 0.3
+
     if supplier_regions and _matches_terms(blob, supplier_regions + entity_terms):
         matched_weight += 0.25
-    if critical_commodities and _matches_terms(blob, critical_commodities + entity_terms):
+
+    if critical_commodities and _matches_terms(
+        blob,
+        critical_commodities + entity_terms,
+    ):
         matched_weight += 0.25
+
     if supplier_names and _matches_terms(blob, supplier_names):
         matched_weight += 0.15
+
     if organization_terms and _matches_terms(blob, organization_terms):
         matched_weight += 0.05
 
     return matched_weight / active_weight if active_weight else 0.0
 
-
-def _serialize_event(event: EventRecord) -> dict:
-    return {
-        "id": event.id,
-        "event_id": event.id,
-        "unified_record_id": event.unified_record_id,
-        "source": event.source,
-        "timestamp": event.timestamp.isoformat(),
-        "category": event.category,
-        "summary": event.summary,
-        "location": event.location,
-        "severity": event.severity,
-        "entities": event.entities_json,
-    }
-
-
-def _serialize_risk(risk: RiskRecord, event: EventRecord, supplier: Supplier | None) -> dict:
-    return {
-        "risk_id": risk.id,
-        "event_id": event.id,
-        "supplier": supplier.name if supplier else None,
-        "risk_score": risk.risk_score,
-        "alert_level": risk.alert_level,
-        "features": risk.feature_json,
-        "explanation": _build_explanation(event, supplier),
-    }
-
-
-def _serialize_alert(risk: RiskRecord, event: EventRecord, supplier: Supplier | None) -> dict:
-    return {
-        "id": risk.id,
-        "event_id": event.id,
-        "risk_score": risk.risk_score,
-        "alert_level": risk.alert_level,
-        "summary": event.summary,
-        "supplier": supplier.name if supplier else None,
-        "explanation": _build_explanation(event, supplier),
-        "timestamp": event.timestamp.isoformat(),
-        "source": event.source,
-        "location": event.location,
-        "entities": event.entities_json,
-        "features": risk.feature_json,
-    }
-
-
 @router.post("/pipeline/onboard")
 async def run_onboarded_pipeline(payload: OnboardingRequest, limit: int = 100, db: Session = Depends(get_db)) -> dict:
-    ingestion_result = await run_ingestion_job()
-    event_result = build_structured_events(db, limit=limit)
-    risk_result = score_events(db, limit=limit)
-
-    min_level = _risk_threshold_for_appetite(payload.experience_risk_appetite)
-    threshold = ALERT_ORDER.get(min_level, ALERT_ORDER["Medium"])
-
-    rows = db.execute(
-        select(RiskRecord, EventRecord, Supplier)
-        .join(EventRecord, EventRecord.id == RiskRecord.event_id)
-        .outerjoin(Supplier, Supplier.id == RiskRecord.supplier_id)
-        .order_by(desc(RiskRecord.risk_score))
-        .limit(limit * 5)
-    ).all()
-
-    filtered_rows: list[tuple[RiskRecord, EventRecord, Supplier | None, float]] = []
-    for risk, event, supplier in rows:
-        if ALERT_ORDER.get(risk.alert_level, 0) < threshold:
-            continue
-
-        relevance = _profile_relevance(event, supplier, payload)
-        if relevance < 0.35:
-            continue
-
-        filtered_rows.append((risk, event, supplier, relevance))
-
-    filtered_rows = filtered_rows[:limit]
-    events = [_serialize_event(event) for _, event, _, _ in filtered_rows]
-    risk_items = [_serialize_risk(risk, event, supplier) for risk, event, supplier, _ in filtered_rows]
-    alerts = [_serialize_alert(risk, event, supplier) for risk, event, supplier, _ in filtered_rows]
-
+    # Build session metadata
+    session_id = f"onboard-{uuid4().hex[:16]}"
     session_data = {
-        "session_id": f"onboard-{uuid4().hex[:16]}",
+        "session_id": session_id,
         "company_domain": payload.company_domain.strip(),
         "supplier_regions": _normalize_terms(payload.supplier_regions),
         "critical_commodities": _normalize_terms(payload.critical_commodities),
@@ -214,8 +177,113 @@ async def run_onboarded_pipeline(payload: OnboardingRequest, limit: int = 100, d
         "experience_risk_appetite": payload.experience_risk_appetite.strip(),
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
-    if graph_service.enabled:
-        graph_service.upsert_onboarding_session(session_data=session_data, rows=filtered_rows and [
+
+    # Compute a semantic embedding for the onboarding profile and persist it
+    profile_text = " ".join(
+        [
+            payload.company_domain or "",
+            " ".join(session_data["supplier_regions"]),
+            " ".join(session_data["critical_commodities"]),
+            " ".join(session_data["supplier_names"]),
+            payload.organization_type or "",
+        ]
+    )
+    profile_embedding = embed_text(profile_text or "onboarding profile")
+    try:
+        db.add(
+            OnboardingEmbedding(
+                session_id=session_id,
+                organization_type=payload.organization_type.strip() or None,
+                commodities={"values": session_data["critical_commodities"]},
+                regions={"values": session_data["supplier_regions"]},
+                suppliers={"values": session_data["supplier_names"]},
+                risk_appetite=payload.experience_risk_appetite.strip(),
+                embedding={"vector": profile_embedding},
+            )
+        )
+        db.commit()
+    except Exception:
+        db.rollback()
+
+    # Determine which alert levels to include based on appetite
+    min_level = _risk_threshold_for_appetite(payload.experience_risk_appetite)
+    threshold = ALERT_ORDER.get(min_level, ALERT_ORDER["Medium"])
+    allowed_levels = [k for k, v in ALERT_ORDER.items() if v >= threshold]
+
+    # Fetch candidate events that have embeddings and are at-or-above the alert threshold.
+    candidates = db.execute(
+        select(RiskRecord, EventRecord, Supplier, EventEmbedding)
+        .join(EventRecord, EventRecord.id == RiskRecord.event_id)
+        .join(EventEmbedding, EventEmbedding.event_id == EventRecord.id)
+        .outerjoin(Supplier, Supplier.id == RiskRecord.supplier_id)
+        .where(RiskRecord.alert_level.in_(allowed_levels))
+        .limit(1000)
+    ).all()
+
+    # helper: cosine similarity
+    def _cosine(a: list[float], b: list[float]) -> float:
+        if not a or not b:
+            return 0.0
+        sa = sum(x * x for x in a) ** 0.5
+        sb = sum(x * x for x in b) ** 0.5
+        if sa == 0 or sb == 0:
+            return 0.0
+        return sum(x * y for x, y in zip(a, b)) / (sa * sb)
+
+    # Feature weights (supplier region, commodity, supplier name, event category, graph)
+    weights = {
+        "supplier_region": 0.30,
+        "commodity": 0.25,
+        "supplier_name": 0.20,
+        "event_category": 0.15,
+        "graph_proximity": 0.10,
+    }
+
+    scored: list[tuple[RiskRecord, EventRecord, Supplier | None, float, float]] = []
+    for risk, event, supplier, embedding_row in candidates:
+        # semantic similarity
+        event_vec = (embedding_row.embedding or {}).get("vector") if embedding_row else None
+        semantic = _cosine(profile_embedding, event_vec or [])
+
+        # feature matches (binary/normalized)
+        blob = _text_blob(event, supplier)
+        supplier_region_score = 1.0 if any(r.lower() in (supplier.country or "").lower() or r.lower() in blob for r in session_data["supplier_regions"]) else 0.0
+        commodity_score = 1.0 if any(c.lower() in blob for c in session_data["critical_commodities"]) else 0.0
+        supplier_name_score = 1.0 if supplier and any(s.lower() in (supplier.name or "").lower() for s in session_data["supplier_names"]) else 0.0
+        event_category_score = 1.0 if any(cat.lower() in (event.category or "").lower() for cat in session_data["critical_commodities"]) else 0.0
+
+        # graph proximity via neo4j estimate_path_weight (normalized)
+        try:
+            path_weight = graph_service.estimate_path_weight(event_id=event.id, supplier_id=supplier.id if supplier else None)
+            graph_score = min(1.0, float(path_weight) / 2.0)
+        except Exception:
+            graph_score = 0.0
+
+        feature_score = (
+            weights["supplier_region"] * supplier_region_score
+            + weights["commodity"] * commodity_score
+            + weights["supplier_name"] * supplier_name_score
+            + weights["event_category"] * event_category_score
+            + weights["graph_proximity"] * graph_score
+        )
+
+        # combine semantic and feature scores
+        combined = 0.6 * semantic + 0.4 * feature_score
+
+        scored.append((risk, event, supplier, float(combined), float(semantic)))
+
+    # Filter and pick top-K
+    scored = [s for s in scored if s[3] >= 0.35]
+    scored.sort(key=lambda x: x[3], reverse=True)
+    top = scored[:limit]
+
+    events = [_serialize_event(event) for _, event, _, _, _ in top]
+    risk_items = [_serialize_risk(risk, event, supplier) for risk, event, supplier, _, _ in top]
+    alerts = [_serialize_alert(risk, event, supplier) for risk, event, supplier, _, _ in top]
+
+    # Queue graph upsert asynchronously to avoid blocking response
+    if graph_service.enabled and top:
+        rows_for_graph = [
             {
                 "event_id": event.id,
                 "event_type": event.category,
@@ -242,49 +310,134 @@ async def run_onboarded_pipeline(payload: OnboardingRequest, limit: int = 100, d
                 "ships_through_weight": 0.8,
                 "provides_weight": 0.8,
             }
-            for risk, event, supplier, _ in filtered_rows
-        ] or [])
+            for risk, event, supplier, _, _ in top
+        ]
+
+        import asyncio as _asyncio
+
+        def _background_graph_upsert(sdata, rows):
+            try:
+                graph_service.upsert_onboarding_session(session_data=sdata, rows=rows)
+            except Exception:
+                pass
+
+        _asyncio.get_running_loop().call_soon_threadsafe(_background_graph_upsert, session_data, rows_for_graph)
+
+    # Generate mitigation summary via LLM (async)
+    mitigation_result = {}
+    try:
+        text_for_mitigation = "\n\n".join([e.get("summary", "") for e in events])[:4000]
+        mitigation_result = await generate_mitigation(text_for_mitigation, {"organization": payload.company_domain or payload.organization_type})
+    except Exception:
+        mitigation_result = {"summary": "", "confidence": 0.0}
 
     return {
-        "ingestion": ingestion_result,
-        "structure": event_result,
-        "risk": risk_result,
         "filters": session_data,
-        "counts": {
-            "events": len(events),
-            "risk_items": len(risk_items),
-            "alerts": len(alerts),
-        },
+        "counts": {"events": len(events), "risk_items": len(risk_items), "alerts": len(alerts)},
         "events": events,
         "riskItems": risk_items,
         "alerts": alerts,
+        "mitigation": mitigation_result,
+    }
+
+def _serialize_event(event: EventRecord) -> dict:
+    return {
+        "id": event.id,
+        "event_id": event.id,
+        "unified_record_id": event.unified_record_id,
+        "source": event.source,
+        "timestamp": event.timestamp.isoformat(),
+        "category": event.category,
+        "summary": event.summary,
+        "location": event.location,
+        "severity": event.severity,
+        "entities": event.entities_json,
+    }
+
+
+def _serialize_risk(
+    risk: RiskRecord,
+    event: EventRecord,
+    supplier: Supplier | None,
+) -> dict:
+
+    return {
+        "risk_id": risk.id,
+        "event_id": event.id,
+        "supplier": supplier.name if supplier else None,
+        "risk_score": risk.risk_score,
+        "alert_level": risk.alert_level,
+        "features": risk.feature_json,
+        "explanation": _build_explanation(event, supplier),
+    }
+
+
+def _serialize_alert(
+    risk: RiskRecord,
+    event: EventRecord,
+    supplier: Supplier | None,
+) -> dict:
+
+    return {
+        "id": risk.id,
+        "event_id": event.id,
+        "risk_score": risk.risk_score,
+        "alert_level": risk.alert_level,
+        "summary": event.summary,
+        "supplier": supplier.name if supplier else None,
+        "explanation": _build_explanation(event, supplier),
+        "timestamp": event.timestamp.isoformat(),
+        "source": event.source,
+        "location": event.location,
+        "entities": event.entities_json,
+        "features": risk.feature_json,
     }
 
 
 def _build_explanation(event: EventRecord, supplier: Supplier | None) -> str:
     supplier_name = supplier.name if supplier else "monitored supplier set"
+
     countries = []
+
     if isinstance(event.entities_json, dict):
         raw_countries = event.entities_json.get("countries", [])
+
         countries = raw_countries if isinstance(raw_countries, list) else []
 
     first_country = countries[0] if countries else None
+
     where = event.location or first_country or "upstream lane"
-    return f"{event.category} disruption in {where} can impact {supplier_name} via dependency links"
+
+    return (
+        f"{event.category} disruption in {where} "
+        f"can impact {supplier_name} via dependency links"
+    )
 
 
 def _coords_for_event(event: EventRecord) -> dict[str, float | None]:
     candidates = [
         event.location,
-        *(event.entities_json.get("ports", [])[:1] if isinstance(event.entities_json, dict) else []),
-        *(event.entities_json.get("countries", [])[:1] if isinstance(event.entities_json, dict) else []),
+        *(
+            event.entities_json.get("ports", [])[:1]
+            if isinstance(event.entities_json, dict)
+            else []
+        ),
+        *(
+            event.entities_json.get("countries", [])[:1]
+            if isinstance(event.entities_json, dict)
+            else []
+        ),
     ]
+
     for value in candidates:
         if not value:
             continue
+
         coord = LOCATION_COORDS.get(str(value).lower())
+
         if coord:
             return coord
+
     return {"lat": None, "lng": None}
 
 
@@ -300,22 +453,29 @@ def process_events(limit: int = 100, db: Session = Depends(get_db)) -> dict:
 
 @router.get("/events")
 def list_events(limit: int = 100, db: Session = Depends(get_db)) -> dict:
-    rows = db.execute(select(EventRecord).order_by(desc(EventRecord.timestamp)).limit(limit)).scalars().all()
-    items = [
-        {
-            "id": row.id,
-            "unified_record_id": row.unified_record_id,
-            "source": row.source,
-            "timestamp": row.timestamp.isoformat(),
-            "category": row.category,
-            "summary": row.summary,
-            "location": row.location,
-            "severity": row.severity,
-            "entities": row.entities_json,
-        }
-        for row in rows
-    ]
-    return {"items": items}
+    rows = db.execute(
+        select(EventRecord)
+        .where(EventRecord.source == "newsapi")
+        .order_by(desc(EventRecord.timestamp))
+        .limit(limit)
+    ).scalars().all()
+
+    return {
+        "items": [
+            {
+                "id": row.id,
+                "unified_record_id": row.unified_record_id,
+                "source": row.source,
+                "timestamp": row.timestamp.isoformat(),
+                "category": row.category,
+                "summary": row.summary,
+                "location": row.location,
+                "severity": row.severity,
+                "entities": row.entities_json,
+            }
+            for row in rows
+        ]
+    }
 
 
 @router.post("/risk")
@@ -325,33 +485,53 @@ def run_risk(limit: int = 100, db: Session = Depends(get_db)) -> dict:
 
 @router.get("/risk")
 def list_risk(limit: int = 100, db: Session = Depends(get_db)) -> dict:
-    rows = db.execute(select(RiskRecord).order_by(desc(RiskRecord.risk_score)).limit(limit)).scalars().all()
-    items = [
-        {
-            "id": row.id,
-            "event_id": row.event_id,
-            "supplier_id": row.supplier_id,
-            "risk_score": row.risk_score,
-            "alert_level": row.alert_level,
-            "features": row.feature_json,
-            "created_at": row.created_at.isoformat(),
-        }
-        for row in rows
-    ]
-    return {"items": items}
+    rows = db.execute(
+        select(RiskRecord)
+        .join(EventRecord, EventRecord.id == RiskRecord.event_id)
+        .where(EventRecord.source == "newsapi")
+        .order_by(desc(RiskRecord.risk_score))
+        .limit(limit)
+    ).scalars().all()
+
+    return {
+        "items": [
+            {
+                "id": row.id,
+                "event_id": row.event_id,
+                "supplier_id": row.supplier_id,
+                "risk_score": row.risk_score,
+                "alert_level": row.alert_level,
+                "features": row.feature_json,
+                "created_at": row.created_at.isoformat(),
+            }
+            for row in rows
+        ]
+    }
 
 
 @router.get("/alerts")
-def list_alerts(min_level: str = "Medium", limit: int = 100, db: Session = Depends(get_db)) -> dict:
+def list_alerts(
+    min_level: str = "Medium",
+    limit: int = 100,
+    db: Session = Depends(get_db),
+) -> dict:
+
     threshold = ALERT_ORDER.get(min_level, 2)
+
     rows = db.execute(
         select(RiskRecord, EventRecord, Supplier)
         .join(EventRecord, EventRecord.id == RiskRecord.event_id)
         .outerjoin(Supplier, Supplier.id == RiskRecord.supplier_id)
+        .where(EventRecord.source == "newsapi")
         .order_by(desc(RiskRecord.risk_score))
         .limit(limit)
     ).all()
-    filtered = [row for row in rows if ALERT_ORDER.get(row[0].alert_level, 0) >= threshold]
+
+    filtered = [
+        row
+        for row in rows
+        if ALERT_ORDER.get(row[0].alert_level, 0) >= threshold
+    ]
 
     return {
         "items": [
@@ -371,20 +551,29 @@ def list_alerts(min_level: str = "Medium", limit: int = 100, db: Session = Depen
 
 
 @router.get("/top-risks")
-def top_risks(limit: int = 20, min_level: str = "Medium", db: Session = Depends(get_db)) -> dict:
+def top_risks(
+    limit: int = 20,
+    min_level: str = "Medium",
+    db: Session = Depends(get_db),
+) -> dict:
+
     threshold = ALERT_ORDER.get(min_level, 2)
+
     rows = db.execute(
         select(RiskRecord, EventRecord, Supplier)
         .join(EventRecord, EventRecord.id == RiskRecord.event_id)
         .outerjoin(Supplier, Supplier.id == RiskRecord.supplier_id)
+        .where(EventRecord.source == "newsapi")
         .order_by(desc(RiskRecord.risk_score))
         .limit(limit)
     ).all()
 
     items = []
+
     for risk, event, supplier in rows:
         if ALERT_ORDER.get(risk.alert_level, 0) < threshold:
             continue
+
         items.append(
             {
                 "risk_id": risk.id,
@@ -397,13 +586,21 @@ def top_risks(limit: int = 20, min_level: str = "Medium", db: Session = Depends(
                 "explanation": _build_explanation(event, supplier),
             }
         )
+
     return {"items": items}
 
 
 @router.get("/events/trends")
 def event_trends(db: Session = Depends(get_db)) -> dict:
     now_utc = datetime.now(timezone.utc)
-    today_start = now_utc.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    today_start = now_utc.replace(
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0,
+    )
+
     tomorrow_start = today_start + timedelta(days=1)
     yesterday_start = today_start - timedelta(days=1)
 
@@ -411,6 +608,7 @@ def event_trends(db: Session = Depends(get_db)) -> dict:
         db.execute(
             select(func.count())
             .select_from(EventRecord)
+            .where(EventRecord.source == "newsapi")
             .where(EventRecord.timestamp >= today_start)
             .where(EventRecord.timestamp < tomorrow_start)
         ).scalar()
@@ -418,17 +616,28 @@ def event_trends(db: Session = Depends(get_db)) -> dict:
     )
 
     day_bucket = func.date_trunc("day", EventRecord.timestamp)
+
     prior_rows = db.execute(
         select(day_bucket, func.count())
+        .select_from(EventRecord)
+        .where(EventRecord.source == "newsapi")
         .group_by(day_bucket)
         .order_by(desc(day_bucket))
         .offset(1)
         .limit(7)
     ).all()
-    prior_avg = (sum(int(row[1]) for row in prior_rows) / len(prior_rows)) if prior_rows else 0.0
+
+    prior_avg = (
+        sum(int(row[1]) for row in prior_rows) / len(prior_rows)
+        if prior_rows
+        else 0.0
+    )
+
     trend = "stable"
+
     if prior_avg > 0 and today_count > prior_avg * 1.5:
         trend = "spike"
+
     elif prior_avg > 0 and today_count < prior_avg * 0.7:
         trend = "drop"
 
@@ -436,6 +645,7 @@ def event_trends(db: Session = Depends(get_db)) -> dict:
         db.execute(
             select(func.count())
             .select_from(EventRecord)
+            .where(EventRecord.source == "newsapi")
             .where(EventRecord.timestamp >= yesterday_start)
             .where(EventRecord.timestamp < today_start)
         ).scalar()
@@ -451,20 +661,30 @@ def event_trends(db: Session = Depends(get_db)) -> dict:
 
 
 @router.get("/risk-map")
-def risk_map(limit: int = 100, min_level: str = "Medium", db: Session = Depends(get_db)) -> dict:
+def risk_map(
+    limit: int = 100,
+    min_level: str = "Medium",
+    db: Session = Depends(get_db),
+) -> dict:
+
     threshold = ALERT_ORDER.get(min_level, 2)
+
     rows = db.execute(
         select(RiskRecord, EventRecord)
         .join(EventRecord, EventRecord.id == RiskRecord.event_id)
+        .where(EventRecord.source == "newsapi")
         .order_by(desc(RiskRecord.risk_score))
         .limit(limit)
     ).all()
 
     points = []
+
     for risk, event in rows:
         if ALERT_ORDER.get(risk.alert_level, 0) < threshold:
             continue
+
         coords = _coords_for_event(event)
+
         points.append(
             {
                 "event_id": event.id,
@@ -487,12 +707,18 @@ def upsert_supplier(
     importance: float = 0.5,
     db: Session = Depends(get_db),
 ) -> dict:
-    existing = db.execute(select(Supplier).where(Supplier.name == name)).scalar_one_or_none()
+
+    existing = db.execute(
+        select(Supplier).where(Supplier.name == name)
+    ).scalar_one_or_none()
+
     if existing:
         existing.country = country
         existing.importance = max(0.0, min(1.0, importance))
+
         db.commit()
         db.refresh(existing)
+
         return {
             "id": existing.id,
             "name": existing.name,
@@ -505,9 +731,11 @@ def upsert_supplier(
         country=country,
         importance=max(0.0, min(1.0, importance)),
     )
+
     db.add(supplier)
     db.commit()
     db.refresh(supplier)
+
     return {
         "id": supplier.id,
         "name": supplier.name,
@@ -518,7 +746,12 @@ def upsert_supplier(
 
 @router.get("/suppliers")
 def list_suppliers(limit: int = 200, db: Session = Depends(get_db)) -> dict:
-    rows = db.execute(select(Supplier).order_by(Supplier.importance.desc()).limit(limit)).scalars().all()
+    rows = db.execute(
+        select(Supplier)
+        .order_by(Supplier.importance.desc())
+        .limit(limit)
+    ).scalars().all()
+
     return {
         "items": [
             {

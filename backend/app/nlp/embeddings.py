@@ -60,15 +60,18 @@ def _cache_key(text: str) -> str:
 def embed_text(text: str) -> List[float]:
     """Return a single embedding vector for the provided text as a list of floats."""
     if not text:
+        logger.debug("Embedding skipped because input text was empty")
         return []
 
     key = _cache_key(text)
     cached = _EMBEDDING_CACHE.get(key)
     if cached is not None:
+        logger.debug("Embedding cache hit text_length=%s vector_length=%s", len(text), len(cached))
         return cached
 
     model = get_embedding_model()
     if model is None:
+        logger.debug("Using fallback embedding model for text_length=%s", len(text))
         embedding = _fallback_embedding(text)
         _EMBEDDING_CACHE[key] = embedding
         return embedding
@@ -82,4 +85,5 @@ def embed_text(text: str) -> List[float]:
         embedding = [float(x) for x in emb]
 
     _EMBEDDING_CACHE[key] = embedding
+    logger.debug("Generated embedding text_length=%s vector_length=%s", len(text), len(embedding))
     return embedding

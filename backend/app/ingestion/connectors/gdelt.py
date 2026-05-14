@@ -8,7 +8,7 @@ from zipfile import ZipFile
 import aiofiles
 import httpx
 
-from app.ingestion.connectors.base import SourceConnector, SOURCE_CREDIBILITY
+from app.ingestion.connectors.base import SourceConnector
 from app.ingestion.parsers.gdelt_parser import GDELTSnapshot, GDELTParser
 from app.ingestion.schema import NormalizedRecord
 

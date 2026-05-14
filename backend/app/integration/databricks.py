@@ -3,11 +3,8 @@ This is intentionally small: it reads `databricks_host` and `databricks_token` f
 provides a `run_job` helper that triggers a job run via the Jobs API.
 """
 from typing import Any, Dict, Optional
-
 import requests
-
 from app.core.config import settings
-
 
 class DatabricksClient:
     def __init__(self) -> None:

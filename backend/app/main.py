@@ -1,5 +1,6 @@
-from pathlib import Path
 import logging
+from logging.config import dictConfig
+from pathlib import Path
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -17,6 +18,60 @@ from app.ingestion.scheduler import start_scheduler
 from app.ml.manager import load_models
 from app.integration.databricks import trigger_default_job
 
+LOG_FILE_PATH = Path(__file__).resolve().parents[1] / "backend.log"
+
+
+def configure_logging() -> None:
+    LOG_FILE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    dictConfig(
+        {
+            "version": 1,
+            "disable_existing_loggers": False,
+            "formatters": {
+                "default": {
+                    "format": "%(asctime)s %(levelname)s [%(name)s] %(message)s",
+                },
+            },
+            "handlers": {
+                "console": {
+                    "class": "logging.StreamHandler",
+                    "formatter": "default",
+                    "level": "INFO",
+                },
+                "file": {
+                    "class": "logging.FileHandler",
+                    "filename": str(LOG_FILE_PATH),
+                    "encoding": "utf-8",
+                    "formatter": "default",
+                    "level": "INFO",
+                },
+            },
+            "root": {
+                "handlers": ["console", "file"],
+                "level": "INFO",
+            },
+            "loggers": {
+                "uvicorn": {
+                    "handlers": ["console", "file"],
+                    "level": "INFO",
+                    "propagate": False,
+                },
+                "uvicorn.error": {
+                    "handlers": ["console", "file"],
+                    "level": "INFO",
+                    "propagate": False,
+                },
+                "uvicorn.access": {
+                    "handlers": ["console", "file"],
+                    "level": "INFO",
+                    "propagate": False,
+                },
+            },
+        }
+    )
+
+
+configure_logging()
 logger = logging.getLogger(__name__)
 
 @asynccontextmanager
@@ -56,10 +111,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(api_router)
-app.include_router(ml_router)
-app.include_router(phase_router)
-app.include_router(graph_router)
+app.include_router(api_router, prefix="/api/v1")
+app.include_router(ml_router, prefix="/api/v1")
+app.include_router(phase_router, prefix="/api/v1")
+app.include_router(graph_router, prefix="/api/v1")
 
 frontend_dir = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 if frontend_dir.exists():

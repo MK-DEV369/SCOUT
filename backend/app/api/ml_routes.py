@@ -1,5 +1,10 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException
+import logging
 import torch
+from sqlalchemy.orm import Session
+
+from app.db.session import get_db
+from app.db.models import EventRecord, EventEmbedding
 
 from app.ml.models import (
     DISTILBERT_MODEL_ID,
@@ -16,6 +21,8 @@ from app.ml.manager import get_status
 from app.nlp.clustering import compute_and_store_embeddings, run_cluster_analysis
 
 router = APIRouter(prefix="/ml", tags=["ml"])
+
+logger = logging.getLogger(__name__)
 
 
 @router.get("/status")
@@ -76,7 +83,45 @@ def ml_health() -> dict:
 
 
 @router.post("/cluster/run")
-def cluster_run(limit: int = 500, min_cluster_size: int = 3) -> dict:
+def cluster_run(limit: int = 500, n_clusters: int = 3, min_cluster_size: int | None = None) -> dict:
+    effective_cluster_size = min_cluster_size if min_cluster_size is not None else n_clusters
+    logger.info("Cluster run requested limit=%s effective_cluster_size=%s", limit, effective_cluster_size)
     stored = compute_and_store_embeddings(limit=limit)
-    clustered = run_cluster_analysis(min_cluster_size=min_cluster_size)
+    clustered = run_cluster_analysis(min_cluster_size=effective_cluster_size)
+    logger.info("Cluster run completed embeddings_stored=%s clustered=%s", stored, clustered)
     return {"embeddings_stored": stored, "clustered": clustered}
+
+
+@router.get("/events/export")
+def export_events(limit: int = 1000, db: Session = Depends(get_db)) -> list[dict]:
+    rows = db.query(EventRecord).order_by(EventRecord.timestamp.desc()).limit(limit).all()
+    return [
+        {
+            "event_id": r.id,
+            "summary": r.summary,
+            "category": r.category,
+            "timestamp": r.timestamp.isoformat() if r.timestamp else None,
+            "severity": r.severity,
+        }
+        for r in rows
+    ]
+
+
+@router.post("/clusters/save")
+def save_clusters(payload: list[dict], db: Session = Depends(get_db)) -> dict:
+    if not isinstance(payload, list):
+        raise HTTPException(status_code=400, detail="payload must be a list of {event_id, cluster_id}")
+    saved = 0
+    for item in payload:
+        event_id = item.get("event_id")
+        cluster_id = item.get("cluster_id")
+        if event_id is None or cluster_id is None:
+            continue
+        emb = db.query(EventEmbedding).filter(EventEmbedding.event_id == event_id).one_or_none()
+        if emb:
+            emb.cluster_id = str(cluster_id)
+        else:
+            db.add(EventEmbedding(event_id=event_id, embedding={}, cluster_id=str(cluster_id)))
+        saved += 1
+    db.commit()
+    return {"saved": saved}

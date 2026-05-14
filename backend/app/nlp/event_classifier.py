@@ -1,11 +1,15 @@
 from functools import lru_cache
 from pathlib import Path
 import re
+import logging
 
 import torch
 from transformers import pipeline
 
 from app.core.config import settings
+
+
+logger = logging.getLogger(__name__)
 
 EVENT_LABELS = [
     "conflict",
@@ -222,6 +226,7 @@ def _model_supports_custom_labels(model_id: str) -> bool:
 
 def classify_event(text: str, source: str | None = None) -> dict[str, object]:
     text_lower = text.lower()
+    logger.debug("Classifying event text_length=%s source=%s", len(text), source or "unknown")
 
     category_scores, triggered = _score_categories(text_lower)
     primary_category = max(category_scores, key=category_scores.get)
@@ -235,6 +240,7 @@ def classify_event(text: str, source: str | None = None) -> dict[str, object]:
     if primary_score <= 0:
         primary_category = "economic_stress"
         primary_score = 0.35
+        logger.debug("No heuristic keywords matched; defaulting to %s", primary_category)
 
     keywords_triggered = triggered or [primary_category.replace("_", " ")]
     subtype = CATEGORY_SUBTYPE.get(primary_category, primary_category)
@@ -256,10 +262,12 @@ def classify_event(text: str, source: str | None = None) -> dict[str, object]:
 
     local_artifact = Path(__file__).resolve().parents[1] / "training" / "artifacts" / "event_classifier"
     if local_artifact.exists():
+        logger.debug("Local fine-tuned classifier artifact detected at %s", local_artifact)
         clf = get_classifier()
         model_result = clf(text[:1024])[0]
         model_score = float(model_result.get("score", 0.5))
         model_label = _normalize_label(str(model_result.get("label", "economic_stress")))
+        logger.debug("Classifier output label=%s score=%s", model_label, model_score)
         if _model_supports_custom_labels(get_classifier_info()["model_id"]):
             if model_label in category_scores and model_score >= source_floor:
                 primary_category = model_label
@@ -276,5 +284,13 @@ def classify_event(text: str, source: str | None = None) -> dict[str, object]:
                 secondary_categories = [label for label, score in ranked[1:4] if score >= max(source_floor * 0.7, 0.45)]
                 secondary_categories = [label for label in secondary_categories if label != primary_category]
                 result["secondary_categories"] = secondary_categories
+
+    logger.debug(
+        "Classification result primary_category=%s confidence=%s strategy=%s model_id=%s",
+        result["primary_category"],
+        result["confidence"],
+        result["strategy"],
+        result["model_id"],
+    )
 
     return result

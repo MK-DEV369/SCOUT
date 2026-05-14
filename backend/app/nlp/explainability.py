@@ -4,7 +4,7 @@ Provides functions to explain entity extraction, classification, and summarizati
 """
 
 from typing import List, Dict, Any
-from backend.app.api.schemas import (
+from app.api.schemas import (
     EntityExplanation,
     ClassificationExplanation,
     TopAlternative,

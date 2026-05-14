@@ -56,3 +56,5 @@ backend/app/ml/artifacts/
 backend/app/training/artifacts/
 data/
 __pycache__
+*.md
+Neo4j-7bacfc87-Created-2026-04-30.txt
