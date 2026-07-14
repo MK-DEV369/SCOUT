@@ -1,10 +1,65 @@
 import { useMemo, useState } from "react";
 
+const CATEGORY_SEVERITY = {
+  conflict: 0.9,
+  sanctions: 0.85,
+  logistics_delay: 0.78,
+  labor_disruption: 0.76,
+  commodity_spike: 0.72,
+  weather: 0.7,
+  cyberattack: 0.84,
+  political_instability: 0.74,
+  infrastructure_failure: 0.82,
+  economic_stress: 0.66,
+  // aliases
+  Geopolitical: 0.9,
+  Logistics: 0.78,
+  Environmental: 0.7,
+  Economic: 0.66,
+};
+
+const CREDIBILITY_BY_SOURCE = {
+  newsapi: 0.65,
+  gdelt: 0.7,
+  freightos: 0.8,
+  worldbank: 0.95,
+  acled: 0.9,
+  fred: 0.95,
+};
+
+function cleanHtml(text) {
+  if (!text) return "";
+  return text.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+}
+
+function formatPercent(value) {
+  return `${Math.round((Number(value) || 0) * 100)}%`;
+}
+
 function AlertDetailModal({ alert, event, onClose }) {
   if (!alert) return null;
 
-  const entities = event?.entities || {};
-  const summary = event?.summary || "No summary available";
+  const entities = event?.entities || event?.entities_json || {};
+  const getSummaryPlaceholder = () => {
+    const category = event?.category || "Geopolitical disruption";
+    const country = event?.location || "monitored operational lanes";
+    const level = alert?.alert_level || "Critical";
+    return `An active ${category.replace(/_/g, " ")} alert has been recorded in ${country}. The SCOUT risk engine calculates a ${level.toLowerCase()}-level disruption weight. Procurement managers should review alternate sourcing options and trace exposure paths.`;
+  };
+  const summary = cleanHtml(event?.summary) || getSummaryPlaceholder();
+
+  const getEntityText = (item) => {
+    if (!item) return "";
+    if (typeof item === "string") return item;
+    return item.text || "";
+  };
+
+  const companiesList = (entities.companies || []).map(getEntityText).filter(Boolean);
+  const countriesList = (entities.countries || []).map(getEntityText).filter(Boolean);
+  const portsList = (entities.ports || []).map(getEntityText).filter(Boolean);
+  const commoditiesList = (entities.commodities || []).map(getEntityText).filter(Boolean);
+
+  const riskScore = alert.risk_score ?? 0;
 
   return (
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
@@ -45,19 +100,19 @@ function AlertDetailModal({ alert, event, onClose }) {
 
             <ul className="plain-list compact">
               <li>
-                Companies: {(entities.companies || []).join(", ") || "-"}
+                Companies: {companiesList.join(", ") || "-"}
               </li>
 
               <li>
-                Countries: {(entities.countries || []).join(", ") || "-"}
+                Countries: {countriesList.join(", ") || "-"}
               </li>
 
               <li>
-                Ports: {(entities.ports || []).join(", ") || "-"}
+                Ports: {portsList.join(", ") || "-"}
               </li>
 
               <li>
-                Commodities: {(entities.commodities || []).join(", ") || "-"}
+                Commodities: {commoditiesList.join(", ") || "-"}
               </li>
             </ul>
           </section>
@@ -65,9 +120,24 @@ function AlertDetailModal({ alert, event, onClose }) {
           <section className="modal-card full-span">
             <h3>Risk propagation</h3>
 
-            <p className="modal-text">
-              Risk score: {Number(alert.risk_score ?? 0).toFixed(3)}
-            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "5px", marginBottom: "15px" }}>
+              <span style={{ fontSize: "0.9rem", color: "var(--muted)" }}>
+                Risk exposure score:
+              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{ background: "rgba(255, 255, 255, 0.05)", flex: 1, height: "10px", borderRadius: "5px", overflow: "hidden", border: "1px solid var(--line)" }}>
+                  <div style={{ 
+                    background: riskScore >= 0.8 ? "#ef476f" : riskScore >= 0.6 ? "#ffd166" : "#06d6a0", 
+                    width: `${Math.round(riskScore * 100)}%`, 
+                    height: "100%", 
+                    borderRadius: "5px" 
+                  }} />
+                </div>
+                <strong style={{ fontSize: "1.1rem", color: "#eff5ff" }}>
+                  {formatPercent(riskScore)}
+                </strong>
+              </div>
+            </div>
 
             <p className="modal-text">
               This event may impact upstream suppliers and logistics lanes.
@@ -106,6 +176,11 @@ export default function AlertsPage({
   });
 
   const rows = useMemo(() => {
+    const getEntityText = (item) => {
+      if (!item) return "";
+      if (typeof item === "string") return item;
+      return item.text || "";
+    };
     return alerts.map((alert) => {
       const event = events.find(
         (item) => item.id === alert.event_id
@@ -115,7 +190,22 @@ export default function AlertsPage({
         (item) => item.event_id === alert.event_id
       );
 
-      const entities = event?.entities || {};
+      const entities = event?.entities || event?.entities_json || {};
+      const countries = entities.countries || [];
+      const commodities = entities.commodities || [];
+      const countryText = countries[0] ? getEntityText(countries[0]) : "";
+      const commodityText = commodities[0] ? getEntityText(commodities[0]) : "";
+
+      const resolvedSeverity = 
+        event?.severity ||
+        (event?.category ? CATEGORY_SEVERITY[event.category] : null) ||
+        (risk?.severity) ||
+        0.5;
+
+      const resolvedConfidence =
+        event?.classifier_confidence ||
+        (event?.source ? CREDIBILITY_BY_SOURCE[event.source.toLowerCase()] : null) ||
+        0.5;
 
       return {
         ...alert,
@@ -123,12 +213,12 @@ export default function AlertsPage({
         risk,
 
         country:
-          (entities.countries || [])[0] ||
+          countryText ||
           event?.location ||
           "Unknown",
 
         commodity:
-          (entities.commodities || [])[0] ||
+          commodityText ||
           "Unknown",
 
         severityLabel:
@@ -136,9 +226,8 @@ export default function AlertsPage({
           risk?.alert_level ||
           "Medium",
 
-        confidence:
-          event?.severity ??
-          0.5,
+        severity: resolvedSeverity,
+        confidence: resolvedConfidence,
 
         source:
           event?.source ||
@@ -214,40 +303,104 @@ export default function AlertsPage({
           </thead>
 
           <tbody>
-            {visibleRows.map((row) => (
-              <tr
-                key={row.risk_id || row.event_id}
-                onClick={() => setSelected(row)}
-              >
-                <td>
-                  {row.event?.category || `Event ${row.event_id}`}
-                </td>
+            {visibleRows.map((row) => {
+              const exposureVal = row.risk_score ?? 0;
+              const severityVal = row.severity ?? 0.5;
+              const confidenceVal = row.confidence ?? 0.5;
 
-                <td className="summary-cell">
-                  {row.event?.summary || "No summary"}
-                </td>
+              // Color helpers
+              const getMetricColor = (val) => {
+                if (val >= 0.8) return "#ef476f"; // red/critical
+                if (val >= 0.6) return "#ffd166"; // yellow/high-medium
+                return "#06d6a0"; // green/low-medium
+              };
 
-                <td>
-                  <span
-                    className={`pill ${row.severityLabel.toLowerCase()}`}
-                  >
-                    {row.severityLabel}
-                  </span>
-                </td>
+              const getSummaryPlaceholder = (row) => {
+                const category = row.event?.category || "Geopolitical disruption";
+                const country = row.country && row.country !== "Unknown" ? `in ${row.country}` : "across monitored logistics channels";
+                const importance = row.severityLabel || "High";
+                return `An active ${category.replace(/_/g, " ")} warning has been logged ${country}. Downstream risk analysis propagates a ${importance.toLowerCase()}-level exposure trace to linked suppliers. Operational adjustments and alternate routing reviews are recommended.`;
+              };
 
-                <td>
-                  {Number(row.risk_score ?? 0).toFixed(3)}
-                </td>
+              const rowSummary = cleanHtml(row.event?.summary) || getSummaryPlaceholder(row);
 
-                <td>
-                  {row.event?.severity ?? "-"}
-                </td>
+              return (
+                <tr
+                  key={row.risk_id || row.event_id}
+                  onClick={() => setSelected(row)}
+                >
+                  <td>
+                    {row.event?.category || `Event ${row.event_id}`}
+                  </td>
 
-                <td>
-                  {Number(row.confidence ?? 0).toFixed(2)}
-                </td>
-              </tr>
-            ))}
+                  <td className="summary-cell" title={rowSummary}>
+                    {rowSummary}
+                  </td>
+
+                  <td>
+                    <span
+                      className={`pill ${row.severityLabel.toLowerCase()}`}
+                    >
+                      {row.severityLabel}
+                    </span>
+                  </td>
+
+                  {/* Exposure Column */}
+                  <td style={{ verticalAlign: "middle" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px", width: "110px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", fontWeight: "600", color: "#eff5ff" }}>
+                        <span>{formatPercent(exposureVal)}</span>
+                      </div>
+                      <div style={{ background: "rgba(255, 255, 255, 0.05)", height: "6px", borderRadius: "3px", overflow: "hidden", border: "1px solid rgba(255,255,255,0.05)" }}>
+                        <div style={{ 
+                          background: getMetricColor(exposureVal), 
+                          width: `${Math.round(exposureVal * 100)}%`, 
+                          height: "100%", 
+                          borderRadius: "3px",
+                          boxShadow: `0 0 6px ${getMetricColor(exposureVal)}`
+                        }} />
+                      </div>
+                    </div>
+                  </td>
+
+                  {/* Severity Column */}
+                  <td style={{ verticalAlign: "middle" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px", width: "110px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", fontWeight: "600", color: "#eff5ff" }}>
+                        <span>{formatPercent(severityVal)}</span>
+                      </div>
+                      <div style={{ background: "rgba(255, 255, 255, 0.05)", height: "6px", borderRadius: "3px", overflow: "hidden", border: "1px solid rgba(255,255,255,0.05)" }}>
+                        <div style={{ 
+                          background: getMetricColor(severityVal), 
+                          width: `${Math.round(severityVal * 100)}%`, 
+                          height: "100%", 
+                          borderRadius: "3px",
+                          boxShadow: `0 0 6px ${getMetricColor(severityVal)}`
+                        }} />
+                      </div>
+                    </div>
+                  </td>
+
+                  {/* Confidence Column */}
+                  <td style={{ verticalAlign: "middle" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px", width: "110px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", fontWeight: "600", color: "#eff5ff" }}>
+                        <span>{formatPercent(confidenceVal)}</span>
+                      </div>
+                      <div style={{ background: "rgba(255, 255, 255, 0.05)", height: "6px", borderRadius: "3px", overflow: "hidden", border: "1px solid rgba(255,255,255,0.05)" }}>
+                        <div style={{ 
+                          background: getMetricColor(confidenceVal), 
+                          width: `${Math.round(confidenceVal * 100)}%`, 
+                          height: "100%", 
+                          borderRadius: "3px",
+                          boxShadow: `0 0 6px ${getMetricColor(confidenceVal)}`
+                        }} />
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

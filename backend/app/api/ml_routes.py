@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 import logging
 import torch
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 
 from app.db.session import get_db
 from app.db.models import EventRecord, EventEmbedding
@@ -19,6 +20,7 @@ from app.ml.router import choose_best_provider, get_provider_health
 from app.nlp.event_classifier import get_classifier_info
 from app.ml.manager import get_status
 from app.nlp.clustering import compute_and_store_embeddings, run_cluster_analysis
+from app.core.config import settings
 
 router = APIRouter(prefix="/ml", tags=["ml"])
 
@@ -26,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 
 @router.get("/status")
-def ml_status() -> dict[str, str]:
+def ml_status() -> dict[str, object]:
     clf_info = get_classifier_info()
     cuda_info = get_cuda_memory_info()
     return {
@@ -84,6 +86,12 @@ def ml_health() -> dict:
 
 @router.post("/cluster/run")
 def cluster_run(limit: int = 500, n_clusters: int = 3, min_cluster_size: int | None = None) -> dict:
+    # Keep endpoint for backward compatibility, but avoid running heavy ML on backend.
+    if not settings.backend_embedding_enabled:
+        return {
+            "status": "disabled",
+            "reason": "Backend clustering is disabled. Use Databricks flow: GET /ml/events/export -> cluster in Databricks -> POST /ml/clusters/save",
+        }
     effective_cluster_size = min_cluster_size if min_cluster_size is not None else n_clusters
     logger.info("Cluster run requested limit=%s effective_cluster_size=%s", limit, effective_cluster_size)
     stored = compute_and_store_embeddings(limit=limit)
@@ -125,3 +133,90 @@ def save_clusters(payload: list[dict], db: Session = Depends(get_db)) -> dict:
         saved += 1
     db.commit()
     return {"saved": saved}
+
+
+@router.post("/train-classifier")
+def trigger_classifier_training():
+    """Trigger DistilBERT classifier fine-tuning on Databricks."""
+    from app.integration.databricks import databricks_client
+    if not databricks_client:
+        raise HTTPException(status_code=503, detail="Databricks client is not configured")
+    try:
+        run_id = databricks_client.trigger_classifier_training()
+        return {
+            "status": "training_started",
+            "run_id": run_id,
+            "message": f"Classifier training job {run_id} started on Databricks"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/training-status/{run_id}")
+def get_training_status(run_id: str):
+    """Poll Databricks for training job status."""
+    from app.integration.databricks import databricks_client
+    if not databricks_client:
+        raise HTTPException(status_code=503, detail="Databricks client is not configured")
+    try:
+        run_data = databricks_client.get_run_status(int(run_id))
+        state = run_data.get("state", {})
+        life_cycle_state = state.get("life_cycle_state", "UNKNOWN")
+        result_state = state.get("result_state", "")
+        return {
+            "run_id": run_id,
+            "state": life_cycle_state,
+            "result_state": result_state,
+            "start_time": run_data.get("start_time"),
+            "end_time": run_data.get("end_time")
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/scrape")
+def trigger_scraping_job():
+    """Trigger a data scraping job on Databricks."""
+    from app.integration.databricks import databricks_client
+    if not databricks_client:
+        raise HTTPException(status_code=503, detail="Databricks client is not configured")
+    try:
+        run_id = databricks_client.trigger_scraping_job()
+        return {
+            "status": "scraping_started",
+            "run_id": run_id,
+            "message": f"Data scraping job {run_id} started on Databricks"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/schedule-training")
+def schedule_training(schedule_days: int = 7):
+    """Schedule periodic classifier training (future enhancement stub)."""
+    return {
+        "status": "scheduled",
+        "interval_days": schedule_days,
+        "message": f"Training scheduled every {schedule_days} days via Databricks Jobs scheduling"
+    }
+
+
+class GenerateReportRequest(BaseModel):
+    text: str = ""
+    organization: str = ""
+    summarization_type: str = "Executive Brief"
+    export_length: str = "1 Page (Executive Summary)"
+
+
+@router.post("/generate-report")
+async def generate_custom_report(payload: GenerateReportRequest) -> dict:
+    try:
+        from app.ml.router import generate_executive_report
+        res = await generate_executive_report(payload.text, {
+            "organization": payload.organization,
+            "summarization_type": payload.summarization_type,
+            "export_length": payload.export_length
+        })
+        return res
+    except Exception as e:
+        return {"summary": f"Failed to generate report: {str(e)}", "confidence": 0.0, "error": str(e)}

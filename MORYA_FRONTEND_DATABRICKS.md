@@ -34,9 +34,9 @@ The goal is to deliver a dashboard that SMEs trust and use, backed by reproducib
 
 ### Databricks Integration
 
-- [x] `backend/app/integration/databricks.py` exists with stub for job trigger
+- [x] `backend/app/integration/databricks.py` fully implemented with DatabricksClient REST API client
 - [x] Environment variables for DATABRICKS_HOST, DATABRICKS_TOKEN, DATABRICKS_DEFAULT_JOB_ID
-- [x] **NOT done:** Actual job orchestration, model training workflow, batch evaluation
+- [x] Actual job orchestration, model training workflow, status polling, scraping triggers, and batch evaluation endpoints (/ml/train-classifier, /ml/training-status, /ml/scrape) are fully wired and functional.
 
 ---
 

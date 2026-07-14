@@ -57,11 +57,11 @@ export default function App() {
       status: "running",
       organization: payload?.company_domain || "Operational context",
       stages: [
-        { key: "ingestion", label: "Ingestion", detail: "Connecting sources", status: "active", progress: 15 },
-        { key: "nlp", label: "NLP extraction", detail: "Extracting entities and classifying disruption", status: "pending", progress: 0 },
-        { key: "graph", label: "Graph materialization", detail: "Materializing exposure nodes and paths", status: "pending", progress: 0 },
-        { key: "risk", label: "Risk propagation", detail: "Scoring multi-hop supplier exposure", status: "pending", progress: 0 },
-        { key: "mitigation", label: "Mitigation generation", detail: "Preparing executive actions", status: "pending", progress: 0 },
+        { key: "profile", label: "Profile normalization", detail: "Validating onboarding profile", status: "active", progress: 20 },
+        { key: "retrieval", label: "Semantic retrieval", detail: "Matching relevant disruptions", status: "pending", progress: 0 },
+        { key: "graph", label: "Graph context", detail: "Resolving supplier exposure paths", status: "pending", progress: 0 },
+        { key: "risk", label: "Risk ranking", detail: "Scoring relevance against risk appetite", status: "pending", progress: 0 },
+        { key: "mitigation", label: "Mitigation package", detail: "Generating executive recommendations", status: "pending", progress: 0 },
       ],
       metrics: {
         ingestion: { connected: 0, processed: 0, synced: 0 },
@@ -102,6 +102,7 @@ export default function App() {
         ...nextStatus.metrics,
       },
       summary: nextStatus.summary || current.summary,
+      summary_meta: nextStatus.summary_meta || current.summary_meta,
       alerts: nextStatus.alerts || current.alerts,
       riskItems: nextStatus.riskItems || current.riskItems,
       events: nextStatus.events || current.events,
@@ -149,9 +150,9 @@ export default function App() {
           detail: "Mitigation package prepared",
           metrics: {
             ingestion: {
-              connected: 5,
+              connected: 0,
               processed: pipelineEvents.length || pipelineRiskItems.length || 0,
-              synced: pipelineEvents.length || 0,
+              synced: 0,
             },
             nlp: {
               entities: Math.max(pipelineEvents.length * 4, 0),
@@ -172,17 +173,35 @@ export default function App() {
             },
           },
           summary: [
-            `Processed ${pipelineEvents.length || 0} events`,
-            `Generated ${pipelineRiskItems.length || 0} risk objects`,
-            `Raised ${pipelineAlerts.length || 0} alerts`,
+            `Retrieved ${pipelineEvents.length || 0} relevant events`,
+            `Ranked ${pipelineRiskItems.length || 0} risk items`,
+            `Prepared ${pipelineAlerts.length || 0} alerts for your profile`,
           ],
+          summary_meta: {
+            top_sources: Array.from(new Set(pipelineEvents.map((e) => e.source).filter(Boolean))).slice(0, 3),
+            top_commodities: Array.from(
+              new Set(
+                pipelineEvents
+                  .flatMap((e) => {
+                    const ent = e.entities || e.entities_json || {};
+                    const comms = ent.commodities || [];
+                    return comms.map((c) => (typeof c === "string" ? c : c.text || ""));
+                  })
+                  .filter(Boolean)
+              )
+            ).slice(0, 3),
+            top_suppliers: Array.from(new Set(pipelineRiskItems.map((r) => r.supplier || r.supplier_name).filter(Boolean))).slice(0, 3),
+            source_processing: "Processed by: Ingestion → Normalization → Extraction → Embeddings (Ollama)",
+            mitigation_view: "Mitigations are active in Alerts Console, Suppliers Center, and AI Mitigation Panel.",
+          },
           alerts: pipelineAlerts,
           riskItems: pipelineRiskItems,
           events: pipelineEvents,
         })
       );
 
-      await refreshAll();
+      // Do not immediately refresh global feeds here; that would replace
+      // onboarding-filtered results with unfiltered background data.
       await new Promise((resolve) => window.setTimeout(resolve, 1200));
       navigate("/dashboard");
     } finally {
@@ -219,8 +238,8 @@ export default function App() {
         <Route path="/graph-explorer" element={<GraphExplorerPage events={data.events} riskItems={data.riskItems} graphSummary={data.graphSummary} suppliers={data.suppliers} />} />
         <Route path="/report" element={<IntelReportPage alerts={data.alerts} events={data.events} riskItems={data.riskItems} suppliers={data.suppliers} graphSummary={data.graphSummary} pipelineRun={data.pipelineRun} />} />
         <Route path="/alerts" element={<AlertsPage alerts={data.alerts} events={data.events} riskItems={data.riskItems} graphSummary={data.graphSummary} />} />
-        <Route path="/suppliers" element={<SuppliersPage suppliers={data.suppliers} events={data.events} riskItems={data.riskItems} onSave={saveSupplier} />} />
-        <Route path="/analytics" element={<AnalyticsPage events={data.events} riskItems={data.riskItems} graphSummary={data.graphSummary} />} />
+        <Route path="/suppliers" element={<SuppliersPage suppliers={data.suppliers} events={data.events} riskItems={data.riskItems} onSave={saveSupplier} pipelineRun={data.pipelineRun} />} />
+        <Route path="/analytics" element={<AnalyticsPage events={data.events} riskItems={data.riskItems} graphSummary={data.graphSummary} suppliers={data.suppliers} />} />
       </Routes>
     </Layout>
   );

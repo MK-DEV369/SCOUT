@@ -17,7 +17,7 @@ class GDELTConnector(SourceConnector):
     """Streaming GDELT 2.0 ZIP ingestion engine."""
 
     name = "gdelt"
-    raw_dir = Path("backend/data/gdelt/raw")
+    raw_dir = Path(__file__).resolve().parents[3] / "data" / "gdelt" / "raw"
     latest_update_url = "http://data.gdeltproject.org/gdeltv2/lastupdate.txt"
 
     def __init__(self) -> None:
@@ -35,11 +35,12 @@ class GDELTConnector(SourceConnector):
             if len(parts) < 3:
                 continue
             url = parts[2]
-            if url.endswith(".export.CSV.zip"):
+            url_lower = url.lower()
+            if url_lower.endswith(".export.csv.zip"):
                 snapshot.export_zip = self.raw_dir / Path(url).name
-            elif url.endswith(".mentions.CSV.zip"):
+            elif url_lower.endswith(".mentions.csv.zip"):
                 snapshot.mentions_zip = self.raw_dir / Path(url).name
-            elif url.endswith(".gkg.csv.zip"):
+            elif url_lower.endswith(".gkg.csv.zip"):
                 snapshot.gkg_zip = self.raw_dir / Path(url).name
         return snapshot
 
@@ -86,15 +87,28 @@ class GDELTConnector(SourceConnector):
         }
 
         downloaded: list[Path] = []
+        import logging
+        local_logger = logging.getLogger(__name__)
         try:
-            for url in filter(None, urls.values()):
+            for name, url in urls.items():
+                if not url:
+                    continue
                 dest = self.raw_dir / Path(url).name
-                downloaded.append(await self.download_zip(url, dest))
+                try:
+                    path = await self.download_zip(url, dest)
+                    downloaded.append(path)
+                except httpx.HTTPStatusError as exc:
+                    if exc.response.status_code == 404:
+                        local_logger.warning("GDELT file %s not found (404) on server: %s", name, url)
+                    else:
+                        raise
+                except Exception as exc:
+                    local_logger.warning("GDELT download failed for %s: %s", url, exc)
 
             parsed_snapshot = GDELTSnapshot(
-                export_zip=snapshot.export_zip if snapshot.export_zip and snapshot.export_zip.exists() else downloaded[0] if downloaded else None,
-                mentions_zip=snapshot.mentions_zip if snapshot.mentions_zip and snapshot.mentions_zip.exists() else downloaded[1] if len(downloaded) > 1 else None,
-                gkg_zip=snapshot.gkg_zip if snapshot.gkg_zip and snapshot.gkg_zip.exists() else downloaded[-1] if downloaded else None,
+                export_zip=snapshot.export_zip if snapshot.export_zip and snapshot.export_zip.exists() else None,
+                mentions_zip=snapshot.mentions_zip if snapshot.mentions_zip and snapshot.mentions_zip.exists() else None,
+                gkg_zip=snapshot.gkg_zip if snapshot.gkg_zip and snapshot.gkg_zip.exists() else None,
             )
             records = self.parser.parse(parsed_snapshot)
             return records

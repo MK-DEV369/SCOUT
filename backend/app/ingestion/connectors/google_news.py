@@ -9,6 +9,18 @@ from app.ingestion.connectors.base import SourceConnector, SOURCE_CREDIBILITY
 from app.ingestion.schema import NormalizedRecord
 
 
+import re
+
+def clean_html(text: str) -> str:
+    if not text:
+        return ""
+    # Strip HTML tags
+    cleaned = re.sub(r"<[^>]*>", "", text)
+    # Normalize whitespaces
+    cleaned = re.sub(r"\s+", " ", cleaned)
+    return cleaned.strip()
+
+
 class GoogleNewsConnector(SourceConnector):
     name = "google_news"
 
@@ -32,8 +44,8 @@ class GoogleNewsConnector(SourceConnector):
         records: list[NormalizedRecord] = []
 
         for item in root.findall("./channel/item"):
-            title = (item.findtext("title") or "").strip()
-            description = (item.findtext("description") or "").strip()
+            title = clean_html(item.findtext("title") or "")
+            description = clean_html(item.findtext("description") or "")
             link = (item.findtext("link") or "").strip()
             source = (item.findtext("source") or "").strip() or None
 
@@ -56,12 +68,12 @@ class GoogleNewsConnector(SourceConnector):
                     text=text,
                     timestamp=timestamp,
                     location=source,
-                    source_credibility=SOURCE_CREDIBILITY.get(self.name, 0.60),
-                    source_url=link,
-                    source_outlet=source or "Google News",
                     metadata={
                         "link": link or None,
                         "source": source,
+                        "url": link,
+                        "source_name": source or "Google News",
+                        "credibility": SOURCE_CREDIBILITY.get(self.name, 0.60),
                     },
                 )
             )

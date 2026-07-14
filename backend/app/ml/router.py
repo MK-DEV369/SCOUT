@@ -12,6 +12,7 @@ import torch
 
 from app.core.config import settings
 from app.llm.providers.gemini_provider import GeminiProvider
+from app.llm.providers.ollama_provider import OllamaProvider
 from app.ml.manager import record_inference_result
 from app.ml.models import get_cuda_memory_info, get_mistral_bundle, gpu_available
 
@@ -23,6 +24,7 @@ class InferenceProvider(str, Enum):
     LOCAL_4BIT = "local_4bit"
     DATABRICKS = "databricks"
     GEMINI = "gemini"
+    OLLAMA = "ollama"
     EXTRACTIVE = "extractive"
 
 
@@ -78,12 +80,53 @@ def _build_prompt(kind: str, text: str, context: dict[str, Any] | None = None) -
         )
         instruction = "You are a mitigation planner for supply-chain operations."
     elif kind == "executive_report":
+        ctx = context or {}
+        summarization_type = ctx.get("summarization_type", "Executive Brief")
+        export_length = ctx.get("export_length", "1 Page (Executive Summary)")
+        organization = ctx.get("organization", "the organization")
+
+        # Type-specific instruction suffix
+        if "Action-Item" in summarization_type or "Checklist" in summarization_type:
+            type_instruction = (
+                "Format the output as a prioritized action checklist with three tiers: "
+                "Immediate (0-72 hrs), Short-Term (3-10 days), Strategic (10-30 days). "
+                "Each item should have a checkbox marker [ ], an owner role, and a concrete action. "
+                "End with a concise exposure metrics table."
+            )
+            instruction = "You are a supply-chain operations planner generating a mitigation action checklist for procurement leadership."
+        elif "Technical" in summarization_type or "Root Cause" in summarization_type:
+            type_instruction = (
+                "Format the output as a technical root cause analysis. "
+                "Include: causal chain narrative, NLP entity extraction table (countries, ports, commodities), "
+                "multi-hop propagation path description, risk engine methodology summary, and technical mitigations. "
+                "Use precise operational language for engineering and operations audiences."
+            )
+            instruction = "You are a supply-chain intelligence engineer writing a technical root cause analysis for operations leadership."
+        elif "Financial" in summarization_type or "Strategic" in summarization_type:
+            type_instruction = (
+                "Format the output as a financial and strategic impact assessment. "
+                "Include: a cost impact table (delay window, daily cost exposure, spot purchase premium), "
+                "strategic risk exposure summary, mitigation ROI analysis (% reduction in financial exposure), "
+                "and long-term resilience investment recommendations. "
+                "Use business and financial language for C-suite and finance audiences."
+            )
+            instruction = "You are a supply-chain financial analyst writing a strategic impact report for C-suite and finance leadership."
+        else:
+            type_instruction = (
+                "Write a concise executive brief. Explain why this disruption matters, "
+                "what is exposed in the supply chain, and what leadership should do next. "
+                "Use clear, action-oriented language."
+            )
+            instruction = "You are writing for executive decision-makers. Be crisp, causal, and action-oriented."
+
         prompt = (
-            "Write a short executive brief explaining why this disruption matters, what is exposed, and what leadership should do next.\n\n"
+            f"Write a '{summarization_type}' report for {organization}.\n"
+            f"Target length/format: {export_length}.\n"
+            f"{type_instruction}\n\n"
             f"{context_text}Text:\n{base_text}\n\n"
             "Return a confidence line on its own line: Confidence: 0.00"
         )
-        instruction = "You are writing for executive decision-makers. Be crisp, causal, and action-oriented."
+
     else:
         prompt = (
             "Summarize the disruption in 3 concise bullets. Focus on location, delay, and supply chain impact.\n\n"
@@ -109,10 +152,19 @@ def _databricks_endpoint_healthy() -> bool:
         return False
 
 
+def _ollama_healthy() -> bool:
+    try:
+        response = httpx.get("http://localhost:11434/api/tags", timeout=2.0)
+        return response.status_code == 200
+    except Exception:
+        return False
+
+
 def get_provider_health() -> dict[str, Any]:
     cuda_info = get_cuda_memory_info()
     gemini_ready = bool(settings.gemini_api_key)
     databricks_ready = _databricks_endpoint_healthy()
+    ollama_ready = _ollama_healthy()
     return {
         "local_gpu": {
             "available": gpu_available(),
@@ -133,6 +185,10 @@ def get_provider_health() -> dict[str, Any]:
             "healthy": gemini_ready,
             "model": settings.gemini_model,
         },
+        "ollama": {
+            "available": ollama_ready,
+            "healthy": ollama_ready,
+        },
         "extractive": {
             "available": True,
         },
@@ -149,6 +205,8 @@ def choose_best_provider() -> InferenceProvider:
         return InferenceProvider.DATABRICKS
     if settings.gemini_api_key:
         return InferenceProvider.GEMINI
+    if _ollama_healthy():
+        return InferenceProvider.OLLAMA
     return InferenceProvider.EXTRACTIVE
 
 
@@ -237,6 +295,8 @@ async def _invoke_provider(provider: InferenceProvider, kind: str, text: str, co
         return await asyncio.to_thread(_databricks_generate, kind, text, context)
     if provider is InferenceProvider.GEMINI:
         return await asyncio.to_thread(_gemini_generate, kind, text, context)
+    if provider is InferenceProvider.OLLAMA:
+        return await asyncio.to_thread(_ollama_generate, kind, text, context)
     return _extractive_fallback(kind, text, context)
 
 
@@ -256,7 +316,26 @@ def _gemini_generate(kind: str, text: str, context: dict[str, Any] | None = None
     }
 
 
+def _ollama_generate(kind: str, text: str, context: dict[str, Any] | None = None) -> dict[str, Any]:
+    provider = OllamaProvider()
+    if kind == "mitigation":
+        result = provider.generate_mitigation(text, context)
+    elif kind == "executive_report":
+        result = provider.generate_executive_report(text, context)
+    else:
+        result = provider.generate_summary(text, context)
+    return {
+        "summary": result.get("summary", ""),
+        "confidence": float(result.get("confidence", 0.85)),
+        "provider": result.get("provider", "ollama"),
+        "token_count": int(result.get("token_count") or len(str(result.get("summary", "")).split())),
+    }
+
+
 async def route_intelligence_async(kind: str, text: str, context: dict[str, Any] | None = None) -> dict[str, Any]:
+    if not settings.use_llm_summarizer:
+        return _extractive_fallback(kind, text, context)
+
     providers: list[InferenceProvider] = []
     if gpu_available():
         cuda_info = get_cuda_memory_info()
@@ -268,6 +347,8 @@ async def route_intelligence_async(kind: str, text: str, context: dict[str, Any]
         providers.append(InferenceProvider.DATABRICKS)
     if settings.gemini_api_key:
         providers.append(InferenceProvider.GEMINI)
+    if _ollama_healthy():
+        providers.append(InferenceProvider.OLLAMA)
     providers.append(InferenceProvider.EXTRACTIVE)
 
     last_error: Exception | None = None

@@ -3,12 +3,12 @@ from sqlalchemy.orm import Session
 import logging
 
 from app.db.models import EventEmbedding, EventRecord, UnifiedRecord
+from app.core.config import settings
 from app.nlp.embeddings import embed_text
 from app.nlp.entity_extractor import extract_entities
 from app.nlp.event_classifier import classify_event
 from app.nlp.schemas import ExtractedEntities
 from app.nlp.summarizer import summarize_as_bullets
-from app.nlp.clustering import run_cluster_analysis
 
 
 logger = logging.getLogger(__name__)
@@ -145,11 +145,33 @@ async def build_structured_events(
             entities = ExtractedEntities()
             category = _normalize_category(record.metadata_json.get("category"), source)
             classifier_confidence = float(record.metadata_json.get("confidence", 0.5) or 0.5)
+            summary_confidence = float(record.metadata_json.get("confidence", 0.5) or 0.5)
             summary = _event_summary(record)
 
-        embedding = embed_text(summary)
-        logger.debug("Embedding generated for unified_record_id=%s vector_length=%s", record.id, len(embedding))
-        severity = float(record.metadata_json.get("severity", 0.5) or 0.5)
+        embedding: list[float] = []
+        if settings.backend_embedding_enabled:
+            embedding = embed_text(summary)
+            logger.debug("Embedding generated for unified_record_id=%s vector_length=%s", record.id, len(embedding))
+        
+        severity_val = record.metadata_json.get("severity", 0.5)
+        if isinstance(severity_val, str):
+            severity_str = severity_val.lower().strip()
+            if severity_str == "low":
+                severity = 0.3
+            elif severity_str == "medium":
+                severity = 0.6
+            elif severity_str == "high":
+                severity = 0.9
+            else:
+                try:
+                    severity = float(severity_val)
+                except ValueError:
+                    severity = 0.5
+        else:
+            try:
+                severity = float(severity_val) if severity_val is not None else 0.5
+            except (ValueError, TypeError):
+                severity = 0.5
 
         event = EventRecord(
             unified_record_id=record.id,
@@ -172,7 +194,7 @@ async def build_structured_events(
         db.add(
             EventEmbedding(
                 event_id=event.id,
-                embedding={"vector": embedding},
+                embedding={"vector": embedding} if embedding else {},
                 cluster_id=None,
             )
         )
@@ -180,13 +202,8 @@ async def build_structured_events(
         logger.info("Created event_record_id=%s source=%s category=%s", event.id, event.source, event.category)
     db.commit()
 
+    # Clustering is owned by Databricks batch jobs in the target architecture.
     clustered = 0
-    try:
-        logger.info("Triggering cluster analysis after structured event build")
-        clustered = run_cluster_analysis(min_cluster_size=cluster_min_size)
-    except Exception:
-        logger.exception("Cluster analysis failed after structured event build")
-        clustered = 0
 
     logger.info("Structured event build completed created=%s skipped=%s clustered=%s", created, skipped, clustered)
     return {"created": created, "skipped": skipped, "clustered": clustered}

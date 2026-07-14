@@ -81,4 +81,10 @@ export const api = {
         method: "POST",
       }
     ),
+
+  generateReport: (payload) =>
+    request("/api/v1/ml/generate-report", {
+      method: "POST",
+      body: payload,
+    }),
 };

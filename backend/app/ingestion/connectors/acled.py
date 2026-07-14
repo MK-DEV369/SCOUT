@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -9,9 +10,12 @@ from app.ingestion.schema import NormalizedRecord
 
 class ACLEDConnector(SourceConnector):
     name = "acled"
-    DATA_DIR = Path("backend/data/acled")
+    DATA_DIR = Path(__file__).resolve().parents[3] / "data" / "acled"
 
     async def fetch(self) -> list[NormalizedRecord]:
+        return await asyncio.to_thread(self._fetch_sync)
+
+    def _fetch_sync(self) -> list[NormalizedRecord]:
         records: list[NormalizedRecord] = []
         excel_files = sorted(self.DATA_DIR.glob("*.xlsx"))
 

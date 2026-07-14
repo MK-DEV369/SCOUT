@@ -29,13 +29,79 @@ function splitList(value) {
     .filter(Boolean);
 }
 
+const PRESETS = {
+  Semiconductor: {
+    organizationName: "GlobalSemi Corp",
+    companyDomain: "Semiconductor",
+    industryDomain: "Semiconductor",
+    country: "Taiwan",
+    operationalRegions: "Taiwan, South Korea, Japan",
+    supplierRegions: "Taiwan, South Korea, Japan, United States",
+    criticalCommodities: "silicon wafer, photoresist, rare earth, lithography chemicals",
+    supplierNames: "TSMC, Samsung, Intel, ASML",
+    criticalSuppliers: "TSMC, Samsung, Intel, ASML",
+    supplierCountries: "Taiwan, South Korea, United States, Netherlands",
+    criticalPorts: "Rotterdam, Singapore, Kaohsiung",
+    riskAppetite: "Balanced",
+    alertSensitivity: "High",
+    preferredAlertCategories: "geopolitical, logistics, economic",
+    role: "Analyst",
+    experienceLevel: "Intermediate",
+    operationalResponsibility: "Procurement and supply continuity",
+    organizationType: "Manufacturer",
+    experienceRiskAppetite: "Balanced",
+  },
+  "Ethanol Fuel": {
+    organizationName: "EcoFuel Global",
+    companyDomain: "Ethanol Fuel",
+    industryDomain: "Ethanol Fuel",
+    country: "United States",
+    operationalRegions: "United States, Brazil, Germany",
+    supplierRegions: "United States, Brazil, India, Germany",
+    criticalCommodities: "corn feedstock, sugarcane, anhydrous ethanol, denaturants",
+    supplierNames: "ADM, POET, Valero, Cosan",
+    criticalSuppliers: "ADM, POET, Valero, Cosan",
+    supplierCountries: "United States, Brazil, India, Germany",
+    criticalPorts: "Houston, Santos, Rotterdam, Paranagua",
+    riskAppetite: "Balanced",
+    alertSensitivity: "High",
+    preferredAlertCategories: "economic, logistics, environmental",
+    role: "Operations Manager",
+    experienceLevel: "Intermediate",
+    operationalResponsibility: "Biofuel feedstock logistics and hedging",
+    organizationType: "Refiner",
+    experienceRiskAppetite: "Balanced",
+  },
+  "EV Battery": {
+    organizationName: "VoltDrive Systems",
+    companyDomain: "EV Battery",
+    industryDomain: "EV Battery",
+    country: "Germany",
+    operationalRegions: "Germany, China, United States",
+    supplierRegions: "China, Australia, Chile, Indonesia, Canada",
+    criticalCommodities: "lithium carbonate, cobalt sulfate, battery grade nickel, synthetic graphite",
+    supplierNames: "CATL, LG Energy, Panasonic, BYD",
+    criticalSuppliers: "CATL, LG Energy, Panasonic, BYD",
+    supplierCountries: "China, South Korea, Japan, Australia, Indonesia",
+    criticalPorts: "Shanghai, Busan, Ningbo, Vancouver",
+    riskAppetite: "Conservative",
+    alertSensitivity: "Critical",
+    preferredAlertCategories: "geopolitical, economic, logistics, mining",
+    role: "Strategic Sourcing Director",
+    experienceLevel: "Advanced",
+    operationalResponsibility: "Critical minerals procurement security",
+    organizationType: "Automotive OEM",
+    experienceRiskAppetite: "Conservative",
+  }
+};
+
 export default function OnboardingModal({ open, loading, onClose, onSubmit }) {
-  const [form, setForm] = useState(DEFAULT_FORM);
+  const [form, setForm] = useState(PRESETS.Semiconductor);
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (open) {
-      setForm(DEFAULT_FORM);
+      setForm(PRESETS.Semiconductor);
       setError("");
     }
   }, [open]);
@@ -80,7 +146,7 @@ export default function OnboardingModal({ open, loading, onClose, onSubmit }) {
     try {
       await onSubmit(payload);
     } catch (submissionError) {
-      setError(submissionError?.message || "Failed to start the onboarding pipeline.");
+      setError(submissionError?.message || "Failed to run onboarding intelligence retrieval.");
     }
   }
 
@@ -97,11 +163,50 @@ export default function OnboardingModal({ open, loading, onClose, onSubmit }) {
           <div>
             <p className="eyebrow">SME onboarding</p>
             <h2 id="onboarding-title">Configure your supply-risk view</h2>
-            <p className="subtle">Use comma-separated values for the list fields. The pipeline will filter the output and sync the session to Neo4j.</p>
+            <p className="subtle">Use comma-separated values for the list fields. Onboarding retrieves intelligence from existing processed data.</p>
           </div>
           <button type="button" className="sidebar-close" onClick={onClose}>
             Close
           </button>
+        </div>
+
+        {/* Quick Presets Selector */}
+        <div style={{
+          background: "rgba(6, 214, 160, 0.05)",
+          border: "1px solid rgba(6, 214, 160, 0.2)",
+          borderRadius: "12px",
+          padding: "15px",
+          margin: "0 24px 20px 24px"
+        }}>
+          <p style={{ margin: "0 0 10px 0", fontSize: "0.8rem", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: "600" }}>
+            Select a Quick Test Preset:
+          </p>
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            {Object.keys(PRESETS).map((key) => {
+              const isActive = form.industryDomain === PRESETS[key].industryDomain;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setForm(PRESETS[key])}
+                  className={`chip ${isActive ? "active" : ""}`}
+                  style={{
+                    cursor: "pointer",
+                    padding: "8px 16px",
+                    borderRadius: "20px",
+                    background: isActive ? "var(--aqua)" : "rgba(255, 255, 255, 0.03)",
+                    color: isActive ? "#08111f" : "#eff5ff",
+                    border: "1px solid " + (isActive ? "var(--aqua)" : "var(--line)"),
+                    fontWeight: "600",
+                    fontSize: "0.85rem",
+                    transition: "all 0.3s ease"
+                  }}
+                >
+                  {key}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <form className="onboarding-form" onSubmit={handleSubmit}>
@@ -230,7 +335,7 @@ export default function OnboardingModal({ open, loading, onClose, onSubmit }) {
               Cancel
             </button>
             <button type="submit" className="cta" disabled={loading}>
-              {loading ? "Running pipeline..." : "Start onboarding"}
+              {loading ? "Retrieving intelligence..." : "Start onboarding"}
             </button>
           </div>
         </form>

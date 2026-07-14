@@ -291,6 +291,7 @@ body {
 
 .grid.two {
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
 
 .home-hero--operational {
   display: grid;
@@ -335,7 +336,33 @@ body {
 .dashboard-grid {
   display: grid;
   gap: 18px;
-  grid-template-columns: 320px minmax(0, 1fr) 360px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.dashboard-scroll-list {
+  max-height: 480px;
+  overflow-y: auto;
+  padding-right: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dashboard-scroll-list::-webkit-scrollbar {
+  width: 5px;
+}
+
+.dashboard-scroll-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dashboard-scroll-list::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 4px;
+}
+
+.dashboard-scroll-list::-webkit-scrollbar-thumb:hover {
+  background: var(--aqua);
 }
 
 .dashboard-topbar,
@@ -481,7 +508,19 @@ body {
 }
 
 .report-page {
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+.markdown-content p {
+  text-align: justify;
+}
+
+.markdown-content {
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .report-cover,
@@ -550,7 +589,13 @@ body {
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
 
-.supplier-card header,
+.supplier-card header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
 .supplier-card__metrics {
   display: flex;
   justify-content: space-between;
@@ -559,6 +604,28 @@ body {
 
 .supplier-card__metrics {
   margin: 12px 0;
+}
+
+.supplier-card__metrics div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  text-align: center;
+}
+
+.supplier-card__metrics div span {
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.supplier-card__metrics div strong {
+  font-size: 1.2rem;
+  color: #eff5ff;
+  font-weight: 700;
 }
 
 .supplier-card__metrics div,
@@ -628,7 +695,6 @@ body {
     height: 520px;
     min-height: 520px;
   }
-}
 }
 
 .graph-grid {
@@ -976,19 +1042,68 @@ body {
 }
 
 .table-wrap {
+  width: 100%;
   overflow-x: auto;
+  margin-top: 15px;
+  border-radius: 8px;
+  background: rgba(13, 27, 43, 0.3);
+  border: 1px solid var(--line);
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: auto;
 }
 
 th,
 td {
   border-bottom: 1px solid var(--line);
-  padding: 10px;
+  padding: 12px 14px;
   text-align: left;
+}
+
+th {
+  background: rgba(13, 27, 43, 0.6);
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+tbody tr {
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.summary-cell {
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (min-width: 768px) {
+  .summary-cell {
+    max-width: 380px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .summary-cell {
+    max-width: 520px;
+  }
+}
+
+@media (min-width: 1600px) {
+  .summary-cell {
+    max-width: 720px;
+  }
 }
 
 .form {
@@ -1221,5 +1336,363 @@ input {
   }
   html {
     @apply font-sans;
+  }
+}
+
+@media print {
+  /* Hide sidebar, navigation, headers, inputs, and button controls during print */
+  .sidebar,
+  .sidebar-nav,
+  aside,
+  header,
+  .cta,
+  button,
+  .analytics-window-picker,
+  .toggle-group,
+  .supplier-filters,
+  .form,
+  .page-head,
+  .report-controls,
+  .markdown-editor-pane,
+  .report-cover button,
+  nav {
+    display: none !important;
+  }
+
+  /* Reset the container body, margins, and backgrounds for print */
+  body, 
+  .layout, 
+  main, 
+  .report-page,
+  .report-print-container {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+    overflow: visible !important;
+  }
+
+  /* Format report cards with academic black-and-white borders */
+  .card {
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: 1px solid #000000 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    margin-bottom: 20px !important;
+    padding: 15px !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Style the report cover page with standard double borders */
+  .report-cover {
+    border: 4px double #000000 !important;
+    padding: 30px !important;
+    text-align: center !important;
+    page-break-after: always !important;
+  }
+
+  h1, h2, h3, h4 {
+    color: #000000 !important;
+    font-family: 'Times New Roman', Times, serif !important;
+    page-break-after: avoid !important;
+  }
+
+  p, li, td, span, strong {
+    color: #000000 !important;
+    font-family: 'Times New Roman', Times, serif !important;
+    font-size: 11pt !important;
+  }
+
+  /* Keep charts and graphs from breaking inside pages */
+  .recharts-responsive-container,
+  .recharts-wrapper {
+    page-break-inside: avoid !important;
+  }
+}
+
+.dashboard-stats {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, 1fr);
+  min-width: 280px;
+}
+@media (min-width: 1024px) {
+  .dashboard-stats {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Custom premium animations for homepage actions */
+@keyframes pulse-glow-aqua {
+  0% {
+    box-shadow: 0 0 0 0 rgba(6, 214, 160, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(6, 214, 160, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(6, 214, 160, 0);
+  }
+}
+
+@keyframes pulse-glow-blue {
+  0% {
+    box-shadow: 0 0 0 0 rgba(17, 138, 178, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(17, 138, 178, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(17, 138, 178, 0);
+  }
+}
+
+.btn-animate-pipeline {
+  position: relative;
+  overflow: hidden;
+  background: var(--aqua) !important;
+  color: #08111f !important;
+  font-weight: 600 !important;
+  border-radius: 12px !important;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+  animation: pulse-glow-aqua 2.5s infinite;
+}
+
+.btn-animate-pipeline:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 8px 20px rgba(6, 214, 160, 0.4) !important;
+}
+
+.btn-animate-graph {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--blue) !important;
+  color: var(--blue) !important;
+  background: rgba(17, 138, 178, 0.05) !important;
+  font-weight: 600 !important;
+  border-radius: 12px !important;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+}
+
+.btn-animate-graph:hover {
+  transform: translateY(-2px) scale(1.03);
+  background: var(--blue) !important;
+  color: #08111f !important;
+  box-shadow: 0 8px 20px rgba(17, 138, 178, 0.4) !important;
+}
+
+/* --- Analytics Global Risk Map Styles --- */
+.analytics-map-card {
+  margin-bottom: 24px;
+}
+.map-container {
+  min-height: 350px;
+}
+.rsm-geography {
+  transition: all 250ms ease;
+}
+.rsm-geography:hover {
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.4));
+}
+
+/* --- Report PDF & Print Layout Formatting --- */
+.print-only {
+  display: none !important;
+}
+
+@media print {
+  /* Enforce A4 layout and margins */
+  @page {
+    size: A4;
+    margin: 20mm 15mm 20mm 15mm;
+  }
+  
+  /* Reset background for print standard white */
+  body, 
+  .app-shell,
+  .layout, 
+  main, 
+  .report-page,
+  .report-print-container {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+    overflow: visible !important;
+  }
+
+  /* Hide screen elements during print */
+  .no-print,
+  .sidebar,
+  .sidebar-backdrop,
+  .sidebar-menu,
+  .topbar,
+  nav,
+  button,
+  .cta,
+  .chip,
+  .report-controls,
+  .markdown-editor-pane,
+  .editor-toolbar,
+  #report-textarea,
+  .analytics-window-picker {
+    display: none !important;
+  }
+
+  /* Academic Cover page double-border */
+  .report-cover {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+    text-align: center !important;
+    border: 6px double #000000 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 50px !important;
+    margin: 10mm !important;
+    height: 90vh !important;
+    box-sizing: border-box !important;
+    page-break-after: always !important;
+  }
+  
+  .report-cover h2 {
+    font-size: 26pt !important;
+    font-weight: bold !important;
+    margin-bottom: 15px !important;
+  }
+
+  .report-cover p {
+    font-size: 13pt !important;
+    color: #333333 !important;
+  }
+
+  /* Content page borders */
+  .report-preview-pane {
+    border: 1px solid #000000 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 25mm 20mm !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    min-height: 100% !important;
+  }
+
+  .report-header-grid {
+    border-bottom: 2px solid #000000 !important;
+    margin-bottom: 20px !important;
+    padding-bottom: 15px !important;
+    color: #000000 !important;
+  }
+  
+  .report-header-grid span {
+    color: #444444 !important;
+  }
+
+  /* Repeating Headers and Footers */
+  .print-only {
+    display: flex !important;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'Times New Roman', Times, serif !important;
+    font-size: 9pt !important;
+    color: #000000 !important;
+    width: 100% !important;
+    box-sizing: border-box;
+  }
+
+  .print-header {
+    position: fixed;
+    top: 5mm;
+    left: 15mm;
+    right: 15mm;
+    border-bottom: 1px solid #000000 !important;
+    padding-bottom: 4px;
+    height: 10mm;
+  }
+
+  .print-footer {
+    position: fixed;
+    bottom: 5mm;
+    left: 15mm;
+    right: 15mm;
+    border-top: 1px solid #000000 !important;
+    padding-top: 4px;
+    height: 10mm;
+  }
+
+  /* Scientific style diagrams / charts */
+  .report-chart-card {
+    background: #ffffff !important;
+    border: 1px solid #000000 !important;
+    border-radius: 0 !important;
+    padding: 10px !important;
+    margin-top: 15px !important;
+    page-break-inside: avoid !important;
+    color: #000000 !important;
+  }
+
+  .report-chart-card h4 {
+    color: #000000 !important;
+    font-weight: bold !important;
+    font-size: 10pt !important;
+  }
+
+  /* Scientific serif typography */
+  .markdown-content h1, 
+  .markdown-content h2, 
+  .markdown-content h3,
+  .markdown-content h4 {
+    font-family: 'Times New Roman', Times, serif !important;
+    color: #000000 !important;
+    page-break-after: avoid !important;
+    margin-top: 15pt !important;
+    margin-bottom: 5pt !important;
+  }
+
+  .markdown-content h1 { font-size: 18pt !important; border-bottom: 1px solid #000; padding-bottom: 5px; }
+  .markdown-content h2 { font-size: 14pt !important; }
+  .markdown-content h3 { font-size: 12pt !important; }
+
+  .markdown-content p, 
+  .markdown-content li, 
+  .markdown-content span, 
+  .markdown-content strong {
+    font-family: 'Times New Roman', Times, serif !important;
+    color: #000000 !important;
+    font-size: 11pt !important;
+    line-height: 1.5 !important;
+  }
+
+  .markdown-content ul {
+    padding-left: 20px !important;
+    margin-bottom: 10pt !important;
+  }
+
+  .page-break {
+    page-break-before: always !important;
+    padding-top: 15mm !important;
+    display: block !important;
+    height: 0 !important;
+    clear: both !important;
+  }
+
+  .recharts-text {
+    fill: #000000 !important;
+  }
+  
+  .recharts-cartesian-grid-horizontal line,
+  .recharts-cartesian-grid-vertical line {
+    stroke: #cccccc !important;
   }
 }

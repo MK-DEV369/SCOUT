@@ -8,8 +8,10 @@ from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session
 
 from app.db.models import EventRecord, RiskRecord, Supplier
-from app.graph.neo4j_client import graph_service
 from app.db.session import get_db
+from app.ingestion.scheduler import run_ingestion_job
+from app.nlp.pipeline import build_structured_events
+from app.risk.pipeline import score_events, estimate_path_weight_relational
 from app.nlp.embeddings import embed_text
 from app.db.models import EventEmbedding, OnboardingEmbedding
 from app.ml.router import generate_mitigation
@@ -38,6 +40,7 @@ class OnboardingRequest(BaseModel):
     supplier_regions: list[str] = Field(default_factory=list)
     critical_commodities: list[str] = Field(default_factory=list)
     supplier_names: list[str] = Field(default_factory=list)
+    supplier_countries: list[str] = Field(default_factory=list)
     organization_type: str = ""
     experience_risk_appetite: str = "Balanced"
 
@@ -178,6 +181,31 @@ async def run_onboarded_pipeline(payload: OnboardingRequest, limit: int = 100, d
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
 
+    # Automatically register/upsert onboarding suppliers and countries in PostgreSQL
+    supplier_names_norm = _normalize_terms(payload.supplier_names)
+    supplier_countries_norm = _normalize_terms(payload.supplier_countries)
+    for i, name in enumerate(supplier_names_norm):
+        if not name:
+            continue
+        country = supplier_countries_norm[i] if i < len(supplier_countries_norm) else None
+        existing_sup = db.execute(
+            select(Supplier).where(Supplier.name == name)
+        ).scalar_one_or_none()
+        if existing_sup:
+            if country:
+                existing_sup.country = country
+        else:
+            new_sup = Supplier(
+                name=name,
+                country=country,
+                importance=0.8 if i == 0 else 0.6
+            )
+            db.add(new_sup)
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+
     # Compute a semantic embedding for the onboarding profile and persist it
     profile_text = " ".join(
         [
@@ -247,14 +275,14 @@ async def run_onboarded_pipeline(payload: OnboardingRequest, limit: int = 100, d
 
         # feature matches (binary/normalized)
         blob = _text_blob(event, supplier)
-        supplier_region_score = 1.0 if any(r.lower() in (supplier.country or "").lower() or r.lower() in blob for r in session_data["supplier_regions"]) else 0.0
+        supplier_region_score = 1.0 if any(r.lower() in ((supplier.country or "") if supplier else "").lower() or r.lower() in blob for r in session_data["supplier_regions"]) else 0.0
         commodity_score = 1.0 if any(c.lower() in blob for c in session_data["critical_commodities"]) else 0.0
         supplier_name_score = 1.0 if supplier and any(s.lower() in (supplier.name or "").lower() for s in session_data["supplier_names"]) else 0.0
         event_category_score = 1.0 if any(cat.lower() in (event.category or "").lower() for cat in session_data["critical_commodities"]) else 0.0
 
-        # graph proximity via neo4j estimate_path_weight (normalized)
+        # graph proximity via relational estimate_path_weight (normalized)
         try:
-            path_weight = graph_service.estimate_path_weight(event_id=event.id, supplier_id=supplier.id if supplier else None)
+            path_weight = estimate_path_weight_relational(event, supplier)
             graph_score = min(1.0, float(path_weight) / 2.0)
         except Exception:
             graph_score = 0.0
@@ -272,56 +300,23 @@ async def run_onboarded_pipeline(payload: OnboardingRequest, limit: int = 100, d
 
         scored.append((risk, event, supplier, float(combined), float(semantic)))
 
-    # Filter and pick top-K
-    scored = [s for s in scored if s[3] >= 0.35]
-    scored.sort(key=lambda x: x[3], reverse=True)
-    top = scored[:limit]
+    # Filter and pick top-K (with Search Relaxation if no strict matches are found)
+    filtered_scored = [s for s in scored if s[3] >= 0.35]
+    if not filtered_scored:
+        # Relax threshold to 0.15
+        filtered_scored = [s for s in scored if s[3] >= 0.15]
+    if not filtered_scored:
+        # Final fallback to return all candidate events sorted by combined score
+        filtered_scored = scored
+
+    filtered_scored.sort(key=lambda x: x[3], reverse=True)
+    top = filtered_scored[:limit]
 
     events = [_serialize_event(event) for _, event, _, _, _ in top]
     risk_items = [_serialize_risk(risk, event, supplier) for risk, event, supplier, _, _ in top]
     alerts = [_serialize_alert(risk, event, supplier) for risk, event, supplier, _, _ in top]
 
-    # Queue graph upsert asynchronously to avoid blocking response
-    if graph_service.enabled and top:
-        rows_for_graph = [
-            {
-                "event_id": event.id,
-                "event_type": event.category,
-                "severity": float(event.severity),
-                "timestamp": event.timestamp.isoformat(),
-                "headline": event.summary[:240],
-                "base_risk_score": float(risk.feature_json.get("base_risk_score", risk.risk_score)),
-                "composite_risk_score": float(risk.risk_score),
-                "country": (event.entities_json.get("countries", []) or [event.location])[0] if isinstance(event.entities_json, dict) else event.location,
-                "port": (event.entities_json.get("ports", []) or [None])[0] if isinstance(event.entities_json, dict) else None,
-                "commodity": (event.entities_json.get("commodities", []) or [None])[0] if isinstance(event.entities_json, dict) else None,
-                "supplier_id": supplier.id if supplier else None,
-                "supplier_name": supplier.name if supplier else None,
-                "supplier_country": supplier.country if supplier else None,
-                "supplier_criticality": float(risk.feature_json.get("supplier_criticality", supplier.importance if supplier else 1.0)),
-                "manufacturer_id": "onboarded_manufacturer",
-                "manufacturer_name": payload.organization_type.strip() or "SCOUT Manufacturer",
-                "risk_exposure_score": float(risk.risk_score),
-                "path_weight": float(risk.feature_json.get("path_weight", 1.0)),
-                "affects_country_weight": 0.7,
-                "affects_port_weight": 0.9,
-                "affects_commodity_weight": 0.8,
-                "located_in_weight": 0.7,
-                "ships_through_weight": 0.8,
-                "provides_weight": 0.8,
-            }
-            for risk, event, supplier, _, _ in top
-        ]
-
-        import asyncio as _asyncio
-
-        def _background_graph_upsert(sdata, rows):
-            try:
-                graph_service.upsert_onboarding_session(session_data=sdata, rows=rows)
-            except Exception:
-                pass
-
-        _asyncio.get_running_loop().call_soon_threadsafe(_background_graph_upsert, session_data, rows_for_graph)
+    # Keep onboarding request retrieval-only. Graph upserts are handled by background jobs.
 
     # Generate mitigation summary via LLM (async)
     mitigation_result = {}
@@ -414,7 +409,34 @@ def _build_explanation(event: EventRecord, supplier: Supplier | None) -> str:
     )
 
 
+DYNAMIC_COORDS = {}
+
+def _load_dynamic_coords():
+    global DYNAMIC_COORDS
+    if DYNAMIC_COORDS:
+        return
+    try:
+        import pandas as pd
+        from pathlib import Path
+        csv_path = Path(__file__).resolve().parents[3] / "data" / "worldbank" / "SPI_data.csv"
+        if csv_path.exists():
+            df = pd.read_csv(csv_path)
+            df = df.dropna(subset=['country', 'latitude', 'longitude'])
+            df_coords = df[['country', 'iso3c', 'latitude', 'longitude']].drop_duplicates()
+            for _, row in df_coords.iterrows():
+                country = str(row['country']).strip().lower()
+                iso3c = str(row['iso3c']).strip().lower()
+                lat = float(row['latitude'])
+                lng = float(row['longitude'])
+                DYNAMIC_COORDS[country] = {"lat": lat, "lng": lng}
+                DYNAMIC_COORDS[iso3c] = {"lat": lat, "lng": lng}
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("Could not load dynamic coordinates from SPI_data.csv: %s", e)
+
+
 def _coords_for_event(event: EventRecord) -> dict[str, float | None]:
+    _load_dynamic_coords()
     candidates = [
         event.location,
         *(
@@ -433,7 +455,11 @@ def _coords_for_event(event: EventRecord) -> dict[str, float | None]:
         if not value:
             continue
 
-        coord = LOCATION_COORDS.get(str(value).lower())
+        val_lower = str(value).lower()
+        if val_lower in DYNAMIC_COORDS:
+            return DYNAMIC_COORDS[val_lower]
+
+        coord = LOCATION_COORDS.get(val_lower)
 
         if coord:
             return coord
@@ -452,11 +478,12 @@ def process_events(limit: int = 100, db: Session = Depends(get_db)) -> dict:
 
 
 @router.get("/events")
-def list_events(limit: int = 100, db: Session = Depends(get_db)) -> dict:
+def list_events(source: str | None = None, limit: int = 100, db: Session = Depends(get_db)) -> dict:
+    stmt = select(EventRecord)
+    if source:
+        stmt = stmt.where(EventRecord.source == source)
     rows = db.execute(
-        select(EventRecord)
-        .where(EventRecord.source == "newsapi")
-        .order_by(desc(EventRecord.timestamp))
+        stmt.order_by(desc(EventRecord.timestamp))
         .limit(limit)
     ).scalars().all()
 
@@ -484,12 +511,12 @@ def run_risk(limit: int = 100, db: Session = Depends(get_db)) -> dict:
 
 
 @router.get("/risk")
-def list_risk(limit: int = 100, db: Session = Depends(get_db)) -> dict:
+def list_risk(source: str | None = None, limit: int = 100, db: Session = Depends(get_db)) -> dict:
+    stmt = select(RiskRecord).join(EventRecord, EventRecord.id == RiskRecord.event_id)
+    if source:
+        stmt = stmt.where(EventRecord.source == source)
     rows = db.execute(
-        select(RiskRecord)
-        .join(EventRecord, EventRecord.id == RiskRecord.event_id)
-        .where(EventRecord.source == "newsapi")
-        .order_by(desc(RiskRecord.risk_score))
+        stmt.order_by(desc(RiskRecord.risk_score))
         .limit(limit)
     ).scalars().all()
 
@@ -512,18 +539,18 @@ def list_risk(limit: int = 100, db: Session = Depends(get_db)) -> dict:
 @router.get("/alerts")
 def list_alerts(
     min_level: str = "Medium",
+    source: str | None = None,
     limit: int = 100,
     db: Session = Depends(get_db),
 ) -> dict:
 
     threshold = ALERT_ORDER.get(min_level, 2)
 
+    stmt = select(RiskRecord, EventRecord, Supplier).join(EventRecord, EventRecord.id == RiskRecord.event_id).outerjoin(Supplier, Supplier.id == RiskRecord.supplier_id)
+    if source:
+        stmt = stmt.where(EventRecord.source == source)
     rows = db.execute(
-        select(RiskRecord, EventRecord, Supplier)
-        .join(EventRecord, EventRecord.id == RiskRecord.event_id)
-        .outerjoin(Supplier, Supplier.id == RiskRecord.supplier_id)
-        .where(EventRecord.source == "newsapi")
-        .order_by(desc(RiskRecord.risk_score))
+        stmt.order_by(desc(RiskRecord.risk_score))
         .limit(limit)
     ).all()
 
@@ -554,17 +581,17 @@ def list_alerts(
 def top_risks(
     limit: int = 20,
     min_level: str = "Medium",
+    source: str | None = None,
     db: Session = Depends(get_db),
 ) -> dict:
 
     threshold = ALERT_ORDER.get(min_level, 2)
 
+    stmt = select(RiskRecord, EventRecord, Supplier).join(EventRecord, EventRecord.id == RiskRecord.event_id).outerjoin(Supplier, Supplier.id == RiskRecord.supplier_id)
+    if source:
+        stmt = stmt.where(EventRecord.source == source)
     rows = db.execute(
-        select(RiskRecord, EventRecord, Supplier)
-        .join(EventRecord, EventRecord.id == RiskRecord.event_id)
-        .outerjoin(Supplier, Supplier.id == RiskRecord.supplier_id)
-        .where(EventRecord.source == "newsapi")
-        .order_by(desc(RiskRecord.risk_score))
+        stmt.order_by(desc(RiskRecord.risk_score))
         .limit(limit)
     ).all()
 
@@ -591,7 +618,7 @@ def top_risks(
 
 
 @router.get("/events/trends")
-def event_trends(db: Session = Depends(get_db)) -> dict:
+def event_trends(source: str | None = None, db: Session = Depends(get_db)) -> dict:
     now_utc = datetime.now(timezone.utc)
 
     today_start = now_utc.replace(
@@ -604,25 +631,18 @@ def event_trends(db: Session = Depends(get_db)) -> dict:
     tomorrow_start = today_start + timedelta(days=1)
     yesterday_start = today_start - timedelta(days=1)
 
-    today_count = int(
-        db.execute(
-            select(func.count())
-            .select_from(EventRecord)
-            .where(EventRecord.source == "newsapi")
-            .where(EventRecord.timestamp >= today_start)
-            .where(EventRecord.timestamp < tomorrow_start)
-        ).scalar()
-        or 0
-    )
+    today_stmt = select(func.count()).select_from(EventRecord).where(EventRecord.timestamp >= today_start).where(EventRecord.timestamp < tomorrow_start)
+    if source:
+        today_stmt = today_stmt.where(EventRecord.source == source)
+    today_count = int(db.execute(today_stmt).scalar() or 0)
 
     day_bucket = func.date_trunc("day", EventRecord.timestamp)
 
+    prior_stmt = select(day_bucket, func.count()).select_from(EventRecord).group_by(day_bucket)
+    if source:
+        prior_stmt = prior_stmt.where(EventRecord.source == source)
     prior_rows = db.execute(
-        select(day_bucket, func.count())
-        .select_from(EventRecord)
-        .where(EventRecord.source == "newsapi")
-        .group_by(day_bucket)
-        .order_by(desc(day_bucket))
+        prior_stmt.order_by(desc(day_bucket))
         .offset(1)
         .limit(7)
     ).all()
@@ -641,16 +661,10 @@ def event_trends(db: Session = Depends(get_db)) -> dict:
     elif prior_avg > 0 and today_count < prior_avg * 0.7:
         trend = "drop"
 
-    yesterday_count = int(
-        db.execute(
-            select(func.count())
-            .select_from(EventRecord)
-            .where(EventRecord.source == "newsapi")
-            .where(EventRecord.timestamp >= yesterday_start)
-            .where(EventRecord.timestamp < today_start)
-        ).scalar()
-        or 0
-    )
+    yesterday_stmt = select(func.count()).select_from(EventRecord).where(EventRecord.timestamp >= yesterday_start).where(EventRecord.timestamp < today_start)
+    if source:
+        yesterday_stmt = yesterday_stmt.where(EventRecord.source == source)
+    yesterday_count = int(db.execute(yesterday_stmt).scalar() or 0)
 
     return {
         "today_event_count": today_count,
@@ -664,16 +678,17 @@ def event_trends(db: Session = Depends(get_db)) -> dict:
 def risk_map(
     limit: int = 100,
     min_level: str = "Medium",
+    source: str | None = None,
     db: Session = Depends(get_db),
 ) -> dict:
 
     threshold = ALERT_ORDER.get(min_level, 2)
 
+    stmt = select(RiskRecord, EventRecord).join(EventRecord, EventRecord.id == RiskRecord.event_id)
+    if source:
+        stmt = stmt.where(EventRecord.source == source)
     rows = db.execute(
-        select(RiskRecord, EventRecord)
-        .join(EventRecord, EventRecord.id == RiskRecord.event_id)
-        .where(EventRecord.source == "newsapi")
-        .order_by(desc(RiskRecord.risk_score))
+        stmt.order_by(desc(RiskRecord.risk_score))
         .limit(limit)
     ).all()
 
@@ -762,4 +777,4 @@ def list_suppliers(limit: int = 200, db: Session = Depends(get_db)) -> dict:
             }
             for row in rows
         ]
-    }
+    }

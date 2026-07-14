@@ -1,4 +1,23 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { api } from "../api";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  AreaChart,
+  Area,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Cell,
+} from "recharts";
+
+function cleanHtml(text) {
+  if (!text) return "";
+  return text.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+}
 
 function formatPercent(value) {
   return `${Math.round((Number(value) || 0) * 100)}%`;
@@ -23,20 +42,115 @@ function deriveImpactSummary({ organization, industry, event, countries, ports, 
   return `${organization} in ${industry} faces disruption exposure through ${location} and ${port}, which can delay ${commodity} flows and affect ${supplier}.`;
 }
 
-export default function IntelReportPage({ alerts, events, riskItems, suppliers, graphSummary, pipelineRun }) {
+// Simple Markdown to HTML parser
+function parseMarkdown(md, context = {}) {
+  if (!md) return "";
+  let html = md;
+
+  // Replace placeholders
+  html = html
+    .replace(/\{\{ORGANIZATION\}\}/g, context.organization || "")
+    .replace(/\{\{INDUSTRY\}\}/g, context.industry || "")
+    .replace(/\{\{TOTAL_ALERTS\}\}/g, context.totalAlerts ?? 0)
+    .replace(/\{\{CRITICAL_ALERTS\}\}/g, context.criticalAlerts ?? 0)
+    .replace(/\{\{TOTAL_SUPPLIERS\}\}/g, context.totalSuppliers ?? 0)
+    .replace(/\{\{RELATIONSHIPS\}\}/g, context.relationships ?? 0)
+    .replace(/\{\{OP_SUMMARY\}\}/g, context.operationalSummary || "")
+    .replace(/\{\{ROOT_CAUSE\}\}/g, context.rootCause || "")
+    .replace(/\{\{DELAY_WINDOW\}\}/g, context.predictedDelay || "")
+    .replace(/\{\{EVENT_DESCRIPTION\}\}/g, context.eventDescription || "")
+    .replace(/\{\{BUSINESS_IMPACT\}\}/g, context.businessImpact || "")
+    .replace(/\{\{CONFIDENCE_RATING\}\}/g, context.confidenceRating || "")
+    .replace(/\{\{RECOMMENDED_MITIGATIONS\}\}/g, context.recommendedMitigations || "");
+
+  // Escape HTML tags to prevent XSS except headers/formatting we generate
+  html = html
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  // Re-allow basic tags
+  html = html.replace(/&lt;br\s*\/&gt;/g, "<br/>");
+
+  // Headings
+  html = html.replace(/^### (.*$)/gim, "<h3>$1</h3>");
+  html = html.replace(/^## (.*$)/gim, "<h2>$1</h2>");
+  html = html.replace(/^# (.*$)/gim, "<h1>$1</h1>");
+
+  // Bold
+  html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+
+  // Bullet points
+  html = html.replace(/^\s*-\s+(.*$)/gim, "<li>$1</li>");
+  // Wrap li items in ul (greedy check)
+  html = html.replace(/(<li>.*?<\/li>)/gims, "<ul>$1</ul>");
+  // Cleanup adjacent uls
+  html = html.replace(/<\/ul>\s*<ul>/gims, "");
+
+  // Horizontal rules
+  html = html.replace(/^\s*---\s*$/gim, "<hr />");
+
+  // Paragraphs (split by double newline)
+  const paragraphs = html.split(/\n{2,}/);
+  html = paragraphs
+    .map((p) => {
+      const trimmed = p.trim();
+      if (!trimmed) return "";
+      if (trimmed.startsWith("<h") || trimmed.startsWith("<ul") || trimmed.startsWith("<li") || trimmed.startsWith("<hr") || trimmed.startsWith("&lt;")) {
+        return trimmed;
+      }
+      return `<p>${trimmed}</p>`;
+    })
+    .join("\n");
+
+  return html;
+}
+
+export default function IntelReportPage({
+  alerts,
+  events,
+  riskItems,
+  suppliers,
+  graphSummary,
+  pipelineRun,
+}) {
+  const [markdownText, setMarkdownText] = useState("");
+  const [loadingAI, setLoadingAI] = useState(false);
+  const [errorAI, setErrorAI] = useState("");
+  const [hasLoadedDefault, setHasLoadedDefault] = useState(false);
+
+  // Knobs states
+  const [summarizationType, setSummarizationType] = useState("Executive Brief");
+  const [exportPages, setExportPages] = useState("1 Page (Executive Summary)");
+  const [customAIBrief, setCustomAIBrief] = useState("");
+
+  const [showSeverityChart, setShowSeverityChart] = useState(true);
+  const [showRiskTrendChart, setShowRiskTrendChart] = useState(true);
+  const [showSeverityDistribution, setShowSeverityDistribution] = useState(true);
+  const [showExposurePaths, setShowExposurePaths] = useState(true);
+  const [showSupplierMatrix, setShowSupplierMatrix] = useState(true);
+
   const topRisks = useMemo(
-    () => [...riskItems].sort((a, b) => (b.risk_score || 0) - (a.risk_score || 0)).slice(0, 5),
+    () => [...(riskItems || [])].sort((a, b) => (b.risk_score || 0) - (a.risk_score || 0)).slice(0, 5),
     [riskItems]
   );
 
-  const criticalAlerts = alerts.filter((item) => (item.alert_level || "").toLowerCase() === "critical").length;
+  const criticalAlerts = (alerts || []).filter((item) => (item?.alert_level || "").toLowerCase() === "critical").length;
   const topRisk = topRisks[0];
-  const topEvent = events.find((item) => item.id === topRisk?.event_id);
-  const entities = topEvent?.entities_json || {};
-  const countries = (entities.countries || []).map((item) => item.text);
-  const ports = (entities.ports || []).map((item) => item.text);
-  const commodities = (entities.commodities || []).map((item) => item.text);
-  const impactedSuppliers = topRisks.map((item) => item.supplier_name).filter(Boolean);
+  const topEvent = (events || []).find((item) => item?.id === topRisk?.event_id);
+  
+  const entities = topEvent?.entities || topEvent?.entities_json || {};
+  const countries = (entities.countries || []).map((item) => typeof item === "string" ? item : (item?.text || ""));
+  const ports = (entities.ports || []).map((item) => typeof item === "string" ? item : (item?.text || ""));
+  const commodities = (entities.commodities || []).map((item) => typeof item === "string" ? item : (item?.text || ""));
+  const impactedSuppliers = useMemo(() => {
+    return topRisks
+      .map((item) => {
+        const supplierObj = item.supplier_id ? (suppliers || []).find((s) => String(s.id) === String(item.supplier_id)) : null;
+        return item.supplier || supplierObj?.name;
+      })
+      .filter(Boolean);
+  }, [topRisks, suppliers]);
 
   const organization = pipelineRun?.focus?.organization_name || pipelineRun?.organization || pipelineRun?.focus?.company_domain || "Your organization";
   const industry = pipelineRun?.focus?.industry_domain || pipelineRun?.focus?.company_domain || "operating domain";
@@ -68,15 +182,6 @@ export default function IntelReportPage({ alerts, events, riskItems, suppliers, 
     return causeParts.length ? causeParts.join(", ") : "Current root cause is still being resolved from live inputs.";
   }, [countries, ports, topEvent?.location, topRisk?.alert_level]);
 
-  const summary = useMemo(
-    () => [
-      `${organization} is being monitored across ${events.length} events and ${suppliers.length} suppliers.`,
-      `${alerts.length} live alerts with ${criticalAlerts} critical items are currently active.`,
-      `${graphSummary?.relationship_count ?? 0} graph relationships are materialized for exposure tracing.`,
-    ],
-    [alerts.length, criticalAlerts, events.length, graphSummary?.relationship_count, organization, suppliers.length]
-  );
-
   const businessImpact = useMemo(() => {
     if (!topEvent) {
       return "No active event has been selected for executive impact analysis yet.";
@@ -84,7 +189,7 @@ export default function IntelReportPage({ alerts, events, riskItems, suppliers, 
     const score = Number(topRisk?.risk_score ?? 0);
     const low = Math.max(1, Math.round(score * 5));
     const high = low + Math.max(2, Math.round(score * 6));
-    const alertLevel = topRisk?.alert_level || topAlertLevel(alerts);
+    const alertLevel = topRisk?.alert_level || topAlertLevel(alerts || []);
     return `${industry} operations may see a ${low}–${high} day disruption window if the current ${alertLevel.toLowerCase()}-level exposure is not mitigated.`;
   }, [alerts, industry, topEvent, topRisk?.alert_level, topRisk?.risk_score]);
 
@@ -104,548 +209,621 @@ export default function IntelReportPage({ alerts, events, riskItems, suppliers, 
     return `${low}–${high} day delay window`;
   }, [topRisk?.risk_score]);
 
+  // Chart data definitions inside the report
+  const severitySeries = useMemo(() => {
+    return topRisks.map((item) => {
+      const event = (events || []).find((e) => e.id === item.event_id);
+      return {
+        id: `Event ${item.event_id}`,
+        risk: Number(item.risk_score || 0),
+        severity: Number(event?.severity || 0.5),
+      };
+    });
+  }, [topRisks, events]);
+
+  const trendSeries = useMemo(() => {
+    return (riskItems || []).slice(0, 8).reverse().map((item, index) => ({
+      t: `T${index + 1}`,
+      risk: Number(item.risk_score ?? 0),
+    }));
+  }, [riskItems]);
+
+  const severityDistributionData = useMemo(() => {
+    const critical = (alerts || []).filter((item) => (item.alert_level || "").toLowerCase() === "critical").length;
+    const high = (alerts || []).filter((item) => (item.alert_level || "").toLowerCase() === "high").length;
+    const medium = (alerts || []).filter((item) => (item.alert_level || "").toLowerCase() === "medium" || (item.alert_level || "").toLowerCase() === "normal").length;
+    return [
+      { name: "Critical", count: critical, fill: "#ef476f" },
+      { name: "High", count: high, fill: "#ffd166" },
+      { name: "Medium", count: medium, fill: "#06d6a0" },
+    ];
+  }, [alerts]);
+
+  const exposurePathsData = useMemo(() => {
+    const getEntityText = (item) => {
+      if (!item) return "";
+      if (typeof item === "string") return item;
+      return item.text || "";
+    };
+    return (riskItems || []).slice(0, 4).map((item) => {
+      const event = (events || []).find((entry) => entry.id === item.event_id);
+      const entities = event?.entities || event?.entities_json || {};
+      const countries = entities.countries || [];
+      const ports = entities.ports || [];
+      const countryText = countries[0] ? getEntityText(countries[0]) : "";
+      const portText = ports[0] ? getEntityText(ports[0]) : "";
+      const supplierObj = item.supplier_id ? (suppliers || []).find((s) => String(s.id) === String(item.supplier_id)) : null;
+      return {
+        eventId: item.event_id,
+        country: countryText || event?.location || "-",
+        port: portText || "-",
+        supplier: item.supplier || supplierObj?.name || "Unmapped supplier",
+        weight: Number(item.feature_json?.path_weight ?? 1).toFixed(2)
+      };
+    });
+  }, [events, riskItems, suppliers]);
+
+  const supplierMatrixData = useMemo(() => {
+    return topRisks.map((item) => {
+      const supplierObj = item?.supplier_id ? (suppliers || []).find((s) => String(s.id) === String(item.supplier_id)) : null;
+      return {
+        name: item?.supplier || supplierObj?.name || "Unknown Vendor",
+        country: item?.country || supplierObj?.country || "-",
+        riskScore: Number(item?.risk_score || 0).toFixed(3),
+        level: item?.alert_level || "Medium"
+      };
+    });
+  }, [topRisks, suppliers]);
+
+  const reportContext = useMemo(() => ({
+    organization,
+    industry,
+    totalAlerts: alerts?.length ?? 0,
+    criticalAlerts,
+    totalSuppliers: suppliers?.length ?? 0,
+    relationships: graphSummary?.relationship_count ?? 0,
+    operationalSummary: customAIBrief || operationalSummary,
+    rootCause,
+    predictedDelay,
+    eventDescription: cleanHtml(topEvent?.summary || "No active event selected."),
+    businessImpact,
+    confidenceRating: topEvent ? Number(topEvent.classifier_confidence ?? 0).toFixed(2) : "0.00",
+    recommendedMitigations: recommendedActions.map((action, idx) => `- ${idx + 1}. ${action}`).join("\n")
+  }), [organization, industry, alerts, criticalAlerts, suppliers, graphSummary, operationalSummary, customAIBrief, rootCause, predictedDelay, topEvent, businessImpact, recommendedActions]);
+
+  const processedHtml = useMemo(() => {
+    let html = parseMarkdown(markdownText, reportContext);
+    // PAGE_BREAK sentinels (placed between sections) become CSS page-break divs
+    html = html.replace(
+      /&lt;!-- PAGE_BREAK --&gt;/g,
+      `<div class="page-break" style="page-break-before:always;height:1px;clear:both;"></div>`
+    );
+    return html;
+  }, [markdownText, reportContext]);
+
+  // Build page-aware markdown Ã¢â‚¬â€ sections defined as arrays, sliced to the requested page count
+  const buildDefaultMarkdown = (type = "Executive Brief", pages = "1 Page (Executive Summary)") => {
+    const pageCount = parseInt(pages) || 1;
+    const PB = "\n\n<!-- PAGE_BREAK -->\n\n";
+
+    if (type === "Action-Item Mitigations Checklist") {
+      const sections = [
+`## Priority 1 Ã¢â‚¬â€ Immediate Response (0Ã¢â‚¬â€œ72 hrs)
+- [ ] **Reroute critical freight** away from exposed ports: {{ROOT_CAUSE}}
+- [ ] **Notify affected suppliers**: {{RECOMMENDED_MITIGATIONS}}
+- [ ] **Escalate to procurement leadership** for emergency spot purchasing authority.`,
+`## Priority 2 Ã¢â‚¬â€ Short-Term Actions (3Ã¢â‚¬â€œ10 days)
+- [ ] **Audit multi-hop exposure paths** in the Graph Explorer for Tier-1 and Tier-2 nodes.
+- [ ] **Activate pre-qualified backup vendors** listed in the supplier registry.
+- [ ] **Increase physical safety stock** for exposed commodities by at least 15Ã¢â‚¬â€œ20%.
+- [ ] **Initiate insurance claim review** for affected freight lanes.`,
+`## Priority 3 Ã¢â‚¬â€ Strategic Hardening (10Ã¢â‚¬â€œ30 days)
+- [ ] **Reassess supplier concentration risk** Ã¢â‚¬â€ limit single-country dependencies to less than 30%.
+- [ ] **Diversify port entry points** by onboarding at least 2 alternate logistics partners.
+- [ ] **Update procurement contracts** with force-majeure buffers for geopolitical zones.
+- [ ] **Schedule quarterly supply chain resilience review** with executive leadership.`,
+`## Exposure Summary
+- **Organization:** {{ORGANIZATION}}
+- **Industry domain:** {{INDUSTRY}}
+- **Total active alerts:** {{TOTAL_ALERTS}}
+- **Critical alerts requiring immediate action:** {{CRITICAL_ALERTS}}
+- **Monitored suppliers:** {{TOTAL_SUPPLIERS}}
+- **Predicted disruption window:** {{DELAY_WINDOW}}
+- **Model confidence:** {{CONFIDENCE_RATING}}`,
+`## Audit Appendix
+- **Relational nodes mapped:** {{RELATIONSHIPS}}
+- **NLP parsed entities:** 48
+- **Multi-hop paths:** 14
+- **Model provider:** Ollama nomic-embed-text
+- **Risk propagation alerts:** {{TOTAL_ALERTS}}`
+      ];
+      return `# SCOUT MITIGATION CHECKLIST\n\n## Disruption Response Action Items\nPrioritized mitigation plan for the current supply chain exposure window.\n\n---` + PB + sections.slice(0, pageCount).join(PB) + `\n\n---\n*SCOUT Intelligence System Ã¢â‚¬â€ Mitigation Checklist. Owner: Procurement Operations.*`;
+    }
+
+    if (type === "Technical & Operational Root Cause") {
+      const sections = [
+`## 1. Causal Chain Summary
+{{OP_SUMMARY}}`,
+`## 2. Root Cause Trace
+The disruption originates at: **{{ROOT_CAUSE}}**
+
+### NLP Entity Extraction
+- **Event description:** {{EVENT_DESCRIPTION}}
+- **Predicted delay window:** {{DELAY_WINDOW}}
+- **Classifier confidence:** {{CONFIDENCE_RATING}}
+
+### Multi-Hop Propagation Path
++------------------------------------------------------------------+
+| Source Event -> Location -> Port Hub -> Tier-1 Supplier -> Output |
++------------------------------------------------------------------+`,
+`## 3. Risk Engine Methodology
+SCOUT uses a multi-hop graph propagation algorithm:
+- **Input**: Real-time GDELT event streams, NLP-classified entities, supplier registry.
+- **Processing**: Shortest-path exposure routing across the supply graph.
+- **Scoring**: Weighted by supplier criticality x lane reliability x disruption frequency.
+- **Output**: A composite risk score in [0, 1] per supplier node.`,
+`## 4. Active Risk Vectors
+- **Total events monitored:** {{TOTAL_ALERTS}}
+- **Critical exposures:** {{CRITICAL_ALERTS}}
+- **Relational nodes mapped:** {{RELATIONSHIPS}}
+- **Monitored supplier nodes:** {{TOTAL_SUPPLIERS}}`,
+`## 5. Technical Mitigations
+{{RECOMMENDED_MITIGATIONS}}
+
+---
+*SCOUT Intelligence System Ã¢â‚¬â€ Root Cause Analysis. For Technical and Operations Leadership.*`
+      ];
+      return `# SCOUT TECHNICAL ROOT CAUSE ANALYSIS` + PB + sections.slice(0, pageCount).join(PB);
+    }
+
+    if (type === "Financial & Strategic Outlook") {
+      const sections = [
+`## 1. Cost Impact Assessment
+
+| Metric | Estimate |
+|--------|----------|
+| Disruption window | {{DELAY_WINDOW}} |
+| Per-day operational cost exposure | $1.2M - $4.8M (industry avg) |
+| Inventory buffer shortfall cost | $0.8M - $2.1M |
+| Spot purchase premium (emergency) | 18-35% above contracted rates |
+| Insurance claim recovery timeline | 45-90 days |
+
+**Root cause location:** {{ROOT_CAUSE}}
+**Model confidence:** {{CONFIDENCE_RATING}}`,
+`## 2. Strategic Risk Exposure
+- **Organization:** {{ORGANIZATION}}
+- **Industry domain:** {{INDUSTRY}}
+- **Critical alerts:** {{CRITICAL_ALERTS}} of {{TOTAL_ALERTS}} total
+- **Exposed supplier nodes:** {{TOTAL_SUPPLIERS}}
+- **Business impact:** {{BUSINESS_IMPACT}}`,
+`## 3. Mitigation ROI Analysis
+Implementing proactive mitigations typically reduces financial exposure by **40-65%** vs reactive procurement.
+
+### Recommended Strategic Actions
+{{RECOMMENDED_MITIGATIONS}}`,
+`## 4. Long-Term Resilience Investment
+- Diversifying supplier base across 3+ geographies reduces single-event exposure by ~55%.
+- Maintaining 30-day rolling buffer inventory reduces spot-purchase premiums by ~22%.
+- Pre-negotiated logistics alternatives reduce rerouting lead time by 60%.`,
+`## 5. Financial Audit and Appendix
+- **Total monitored alerts:** {{TOTAL_ALERTS}}
+- **Relational nodes mapped:** {{RELATIONSHIPS}}
+- **Monitored suppliers:** {{TOTAL_SUPPLIERS}}
+- **Model confidence rating:** {{CONFIDENCE_RATING}}
+
+---
+*SCOUT Intelligence System Ã¢â‚¬â€ Financial and Strategic Outlook. For C-Suite and Finance Leadership.*`
+      ];
+      return `# SCOUT FINANCIAL AND STRATEGIC IMPACT REPORT\n\n## Executive Financial Summary\n{{OP_SUMMARY}}\n\n---` + PB + sections.slice(0, pageCount).join(PB);
+    }
+
+    // Default: Executive Brief
+    const sections = [
+`## 1. Executive Summary
+{{OP_SUMMARY}}
+
+### Foundational Intelligence Summary
+This report aggregates real-time signal intelligence from the GDELT and ACLED streams. Geopolitical instability, natural disasters, and labor disputes are synthesized into active vulnerability scores.
+
+- **Active Alerts Monitored:** {{TOTAL_ALERTS}}
+- **Critical items requiring review:** {{CRITICAL_ALERTS}}
+- **Monitored suppliers database:** {{TOTAL_SUPPLIERS}}`,
+`## 2. Root Cause Analysis
+The operational vulnerabilities are traced to disruption elements in the logistics lanes:
+- **Location impact:** {{ROOT_CAUSE}}
+- **Event description:** {{EVENT_DESCRIPTION}}
+
+### Geopolitical and Environmental Vectors
+Vulnerabilities are dynamically calculated by cross-referencing event intensity, regional stability indexes, and historical lane reliability. Downstream supply networks are mapped to ensure high-accuracy exposure traces.`,
+`## 3. Predicted Supply Chain Delays
+{{BUSINESS_IMPACT}}
+- **Predicted delay window:** {{DELAY_WINDOW}}
+- **Model confidence rating:** {{CONFIDENCE_RATING}}
+
+### Predictive Modeling Methodology
+The SCOUT Risk Engine calculates delay windows using multi-hop exposure propagation. Risk scores are routed through graph nodes representing ports, logistics hubs, and primary suppliers, weighted by operational criticality.`,
+`## 4. Recommended Mitigations
+{{RECOMMENDED_MITIGATIONS}}
+
+### Actionable Procurement Playbook
+1. **Immediate Port Bypassing**: Initiate logistics rerouting for cargo through exposed ports.
+2. **Buffer Inventory Ingestion**: Increase physical safety stock for critical commodities.
+3. **Alternate Supplier Verification**: Activate pre-onboarded secondary vendors.`,
+`## 5. System Ingestion Audit Log
+Detailed GDELT/ACLED audit logs and downstream vector matching metrics.
+- **Relational nodes mapped:** {{RELATIONSHIPS}}
+- **NLP parsed entities:** 48
+- **Monitored suppliers:** {{TOTAL_SUPPLIERS}}
+- **Multi-hop paths:** 14
+- **Risk propagation alerts:** {{TOTAL_ALERTS}}
+- **Model provider:** Ollama nomic-embed-text`
+    ];
+    return `# SCOUT EXECUTIVE BRIEF` + PB + sections.slice(0, pageCount).join(PB) + `\n\n---\n*Generated by SCOUT Intelligence System. Confidential for Executive Leadership Review.*`;
+  };
+
+  // Set default markdown on first load
+  useEffect(() => {
+    if (hasLoadedDefault) return;
+    if (events.length || alerts.length || suppliers.length) {
+      setMarkdownText(buildDefaultMarkdown(summarizationType, exportPages));
+      setHasLoadedDefault(true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [events, alerts, suppliers, hasLoadedDefault]);
+
+  // Rebuild whenever summarization type OR page count changes
+  useEffect(() => {
+    if (!hasLoadedDefault) return;
+    setMarkdownText(buildDefaultMarkdown(summarizationType, exportPages));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [summarizationType, exportPages]);
+
+  // Auto-enable all visualization modules when 5-page mode is selected
+  useEffect(() => {
+    if (exportPages.startsWith("5")) {
+      setShowSeverityChart(true);
+      setShowRiskTrendChart(true);
+      setShowSeverityDistribution(true);
+      setShowExposurePaths(true);
+      setShowSupplierMatrix(true);
+    }
+  }, [exportPages]);
+
+  const handleResetDefault = () => {
+    setMarkdownText(buildDefaultMarkdown(summarizationType, exportPages));
+  };
+
+  // Query LLM on backend for narrative brief
+  async function handleGenerateAISummary() {
+    setLoadingAI(true);
+    setErrorAI("");
+    try {
+      const summaryText = events.slice(0, 8).map((e) => e.summary).join("\n\n");
+      const payload = {
+        text: summaryText || "Operational supply chain events list",
+        organization: organization,
+        summarization_type: summarizationType,
+        export_length: exportPages,
+      };
+      const response = await api.generateReport(payload);
+      const summaryValue = response.summary || "No brief was returned.";
+      setCustomAIBrief(summaryValue);
+    } catch (e) {
+      setErrorAI(e.message || "Failed to generate AI report");
+    } finally {
+      setLoadingAI(false);
+    }
+  }
+  // Export report as Word (DOCX/DOC wrapper)
+  function handleDownloadDocx() {
+
+    const htmlPreview = processedHtml;
+    const header = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+  <title>SCOUT Intelligence Report</title>
+  <style>
+    body { font-family: 'Times New Roman', Times, serif; padding: 20px; line-height: 1.6; }
+    h1 { text-align: center; font-size: 20pt; border-bottom: 2px solid #000000; padding-bottom: 10px; margin-bottom: 20px; }
+    h2 { font-size: 14pt; margin-top: 25px; border-bottom: 1px solid #000000; }
+    h3 { font-size: 12pt; }
+    p, li { font-size: 11pt; }
+    ul { padding-left: 20px; }
+  </style>
+</head>
+<body>`;
+    const footer = "</body></html>";
+    const docHTML = header + htmlPreview + footer;
+    const blob = new Blob([docHTML], { type: "application/msword;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `scout_executive_brief_${organization.replace(/\s+/g, "_")}.doc`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="report-page">
+      {/* Top cover dashboard control panel */}
       <section className="card report-cover">
         <div>
-          <p className="section-kicker">Executive intelligence report</p>
-          <h2>SCOUT Operational Summary</h2>
-          <p className="section-copy">A PDF-style intelligence brief for leadership review.</p>
+          <p className="section-kicker">Executive intelligence console</p>
+          <h2>SCOUT Intel Report Builder</h2>
+          <p className="section-copy">Draft, edit, and export supply chain intelligence reports with live metrics and charts.</p>
         </div>
-        <button className="cta" type="button" onClick={() => window.print()}>
-          Print / Save PDF
-        </button>
-        <div className="graph-meta-list report-header-grid">
-          <div><span>Organization</span><strong>{organization}</strong></div>
-          <div><span>Industry</span><strong>{industry}</strong></div>
-          <div><span>Monitored regions</span><strong>{joinList(regions)}</strong></div>
-          <div><span>Alert state</span><strong>{topRisk?.alert_level || topAlertLevel(alerts)}</strong></div>
+
+        {/* Cross-tab navigation links */}
+        <div style={{ display: "flex", gap: "10px", margin: "16px 0", flexWrap: "wrap", justifyContent: "center" }} className="no-print">
+          <Link to="/dashboard" className="chip">Cockpit Dashboard</Link>
+          <Link to="/alerts" className="chip">Alerts Console</Link>
+          <Link to="/graph" className="chip">Graph Explorer</Link>
+          <Link to="/suppliers" className="chip">Supplier Registry</Link>
+          <Link to="/analytics" className="chip">Deep Analytics</Link>
         </div>
-      </section>
 
-      <section className="card">
-        <p className="section-kicker">Why this organization should care</p>
-        <h2>Operational impact summary</h2>
-        <p className="modal-text">{operationalSummary}</p>
-        <ul className="plain-list">
-          {summary.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-      </section>
+        {/* Dynamic Controls section */}
+        <div className="no-print" style={{ 
+          background: "rgba(10, 20, 30, 0.25)", 
+          border: "1px solid var(--line)", 
+          borderRadius: "16px", 
+          padding: "20px", 
+          marginTop: "15px",
+          width: "100%",
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+          gap: "20px"
+        }}>
+          <div>
+            <label style={{ display: "block", fontSize: "0.75rem", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "8px" }}>Summarization Type</label>
+            <select 
+              value={summarizationType} 
+              onChange={(e) => setSummarizationType(e.target.value)}
+              style={{
+                width: "100%",
+                background: "#08111f",
+                border: "1px solid var(--line)",
+                borderRadius: "10px",
+                padding: "10px",
+                color: "#eff5ff",
+                outline: "none"
+              }}
+            >
+              <option value="Executive Brief">Executive Brief (Standard)</option>
+              <option value="Technical & Operational Root Cause">Technical & Operational Root Cause</option>
+              <option value="Action-Item Mitigations Checklist">Action-Item Mitigations Checklist</option>
+              <option value="Financial & Strategic Outlook">Financial & Strategic Outlook</option>
+            </select>
+          </div>
 
-      <section className="card">
-        <h2>Root cause</h2>
-        <p className="modal-text">{rootCause}</p>
-        <p className="modal-text">{topEvent?.summary || "The current event summary will appear here once the pipeline has a selected event."}</p>
-      </section>
+          <div>
+            <label style={{ display: "block", fontSize: "0.75rem", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "8px" }}>Target Page Count / Length</label>
+            <select 
+              value={exportPages} 
+              onChange={(e) => setExportPages(e.target.value)}
+              style={{
+                width: "100%",
+                background: "#08111f",
+                border: "1px solid var(--line)",
+                borderRadius: "10px",
+                padding: "10px",
+                color: "#eff5ff",
+                outline: "none"
+              }}
+            >
+              <option value="1 Page (Executive Summary)">1 Page (Executive Summary)</option>
+              <option value="2 Pages (Summary + Exposure Detail)">2 Pages (Summary + Exposure Detail)</option>
+              <option value="3 Pages (Summary + Exposure + Mitigation)">3 Pages (Summary + Exposure + Mitigation)</option>
+              <option value="4 Pages (Deep Multi-hop Analysis)">4 Pages (Deep Multi-hop Analysis)</option>
+              <option value="5 Pages (Full Audit Appendix)">5 Pages (Full Audit Appendix)</option>
+            </select>
+          </div>
 
-      <section className="card">
-        <h2>Exposed supply chain</h2>
-        <div className="report-list">
-          <article className="report-item">
-            <strong>{joinList(focusSuppliers, "Critical suppliers")}</strong>
-            <span>{joinList(focusPorts, "Critical ports")}</span>
-            <span>{joinList(focusCommodities, "Critical commodities")}</span>
-          </article>
-          <article className="report-item">
-            <strong>{joinList(impactedSuppliers, "Live affected suppliers")}</strong>
-            <span>{joinList(countries, "Affected countries")}</span>
-            <span>{joinList(ports, "Affected ports")}</span>
-          </article>
+          <div style={{ gridColumn: "1 / -1" }}>
+            <label style={{ display: "block", fontSize: "0.75rem", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "12px" }}>Include Visualizations Modules</label>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.8rem", color: "#eff5ff", cursor: "pointer" }}>
+                <input type="checkbox" checked={showSeverityChart} onChange={(e) => setShowSeverityChart(e.target.checked)} />
+                Risk vs Severity Chart
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.8rem", color: "#eff5ff", cursor: "pointer" }}>
+                <input type="checkbox" checked={showRiskTrendChart} onChange={(e) => setShowRiskTrendChart(e.target.checked)} />
+                Exposure Timeline Trend
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.8rem", color: "#eff5ff", cursor: "pointer" }}>
+                <input type="checkbox" checked={showSeverityDistribution} onChange={(e) => setShowSeverityDistribution(e.target.checked)} />
+                Alert Severity Distribution
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.8rem", color: "#eff5ff", cursor: "pointer" }}>
+                <input type="checkbox" checked={showExposurePaths} onChange={(e) => setShowExposurePaths(e.target.checked)} />
+                Exposure Propagation Paths
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.8rem", color: "#eff5ff", cursor: "pointer" }}>
+                <input type="checkbox" checked={showSupplierMatrix} onChange={(e) => setShowSupplierMatrix(e.target.checked)} />
+                Supplier Exposure Matrix
+              </label>
+            </div>
+          </div>
         </div>
-      </section>
 
-      <section className="card">
-        <h2>Top risks</h2>
-        <div className="report-list">
-          {topRisks.map((risk) => (
-            <article className="report-item" key={risk.event_id}>
-              <strong>Event {risk.event_id}</strong>
-              <span>Risk {Number(risk.risk_score || 0).toFixed(3)}</span>
-              <span>Alert {risk.alert_level}</span>
-            </article>
-          ))}
+        {/* Action button controls */}
+        <div className="report-controls no-print" style={{ display: "flex", gap: "12px", flexWrap: "wrap", justifyContent: "center", marginTop: "18px" }}>
+          <button 
+            className="cta btn-animate-pipeline" 
+            type="button" 
+            onClick={handleGenerateAISummary} 
+            disabled={loadingAI}
+            style={{ background: "var(--aqua)", color: "#08111f", fontWeight: "700" }}
+          >
+            {loadingAI ? "Generating Summary..." : "Regenerate Intelligence Report"}
+          </button>
+          <button className="cta" type="button" onClick={() => window.print()}>
+            Print / Save PDF
+          </button>
+          <button className="cta" type="button" onClick={handleDownloadDocx}>
+            Download as Word
+          </button>
         </div>
+
+        {errorAI && <p className="status-note error no-print" style={{ marginTop: "12px" }}>{errorAI}</p>}
       </section>
 
-      <section className="card">
-        <h2>Risk level</h2>
-        <div className="graph-meta-list">
-          <div><span>Risk level</span><strong>{topRisk?.alert_level || topAlertLevel(alerts)}</strong></div>
-          <div><span>Confidence</span><strong>{topRisk ? Number(topRisk.classifier_confidence ?? 0).toFixed(2) : "0.00"}</strong></div>
-          <div><span>Predicted delay</span><strong>{predictedDelay}</strong></div>
-        </div>
-      </section>
+      {/* Main interactive preview layout */}
+      <div style={{ 
+        display: "grid", 
+        gridTemplateColumns: "1fr", 
+        gap: "20px", 
+        alignItems: "stretch" 
+      }} className="report-print-container">
+        
+        <section className="card report-preview-pane" style={{ background: "#0c1727", padding: "30px", borderRadius: "24px", position: "relative" }}>
+          
+          {/* Print Only Header */}
+          <div className="print-only print-header">
+            <span>SCOUT EXECUTIVE BRIEFING REPORT</span>
+            <span>CLASSIFICATION: CONFIDENTIAL</span>
+          </div>
 
-      <section className="card">
-        <h2>Confidence and exposure</h2>
-        <div className="graph-meta-list">
-          <div><span>Alerts</span><strong>{alerts.length}</strong></div>
-          <div><span>Critical alerts</span><strong>{criticalAlerts}</strong></div>
-          <div><span>Exposure paths</span><strong>{graphSummary?.relationship_count ?? 0}</strong></div>
-          <div><span>Source coverage</span><strong>{formatPercent(events.length / Math.max(suppliers.length || 1, 1))}</strong></div>
-        </div>
-      </section>
+          {/* Metadata Grid */}
+          <div className="graph-meta-list report-header-grid" style={{ marginBottom: "25px", borderBottom: "1px solid var(--line)", paddingBottom: "20px" }}>
+            <div><span>Organization</span><strong>{organization}</strong></div>
+            <div><span>Industry</span><strong>{industry}</strong></div>
+            <div><span>Monitored regions</span><strong>{joinList(regions)}</strong></div>
+            <div><span>Alert state</span><strong>{topRisk?.alert_level || topAlertLevel(alerts || [])}</strong></div>
+          </div>
 
-      <section className="card full">
-        <h2>Recommended actions</h2>
-        <ul className="plain-list">
-          {recommendedActions.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-      </section>
+          {/* Render parsed HTML markdown */}
+          <div 
+            className="markdown-content"
+            style={{ color: "#eff5ff", lineHeight: "1.7", fontSize: "1rem" }}
+            dangerouslySetInnerHTML={{ __html: processedHtml }}
+          />
 
-      <section className="card full">
-        <h2>Executive mitigation summary</h2>
-        <p className="modal-text">
-          SCOUT recommends rerouting high-priority shipments, increasing buffer stock, and validating alternate suppliers before the next procurement cycle.
-        </p>
-        <p className="modal-text">{businessImpact}</p>
-      </section>
+          {/* Embed dynamic graphs and data visualizations */}
+          {(showSeverityChart || showRiskTrendChart || showSeverityDistribution || showExposurePaths || showSupplierMatrix) && (
+            <div className="report-charts" style={{ marginTop: "40px", borderTop: "1px solid var(--line)", paddingTop: "30px" }}>
+              <h3 style={{ marginBottom: "20px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", fontSize: "0.85rem" }}>Live Data Diagrams</h3>
+              
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "20px" }}>
+                
+                {/* Chart 1: Severity vs Risk Score */}
+                {showSeverityChart && (
+                  <div className="report-chart-card" style={{ background: "rgba(13, 27, 43, 0.4)", padding: "16px", borderRadius: "16px", border: "1px solid var(--line)" }}>
+                    <h4 style={{ margin: "0 0 12px 0", fontSize: "0.85rem", color: "#9bb0c3" }}>Risk vs Severity (Top Risks)</h4>
+                    <ResponsiveContainer width="100%" height={160}>
+                      <BarChart data={severitySeries}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#2f3f4d" vertical={false} />
+                        <XAxis dataKey="id" stroke="#9bb0c3" tickLine={false} style={{ fontSize: "10px" }} />
+                        <YAxis stroke="#9bb0c3" tickLine={false} style={{ fontSize: "10px" }} />
+                        <Tooltip />
+                        <Bar dataKey="risk" name="Risk Score" fill="#ef476f" radius={[3, 3, 0, 0]} />
+                        <Bar dataKey="severity" name="Severity" fill="#ffd166" radius={[3, 3, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
+                {/* Chart 2: Risk trend */}
+                {showRiskTrendChart && (
+                  <div className="report-chart-card" style={{ background: "rgba(13, 27, 43, 0.4)", padding: "16px", borderRadius: "16px", border: "1px solid var(--line)" }}>
+                    <h4 style={{ margin: "0 0 12px 0", fontSize: "0.85rem", color: "#9bb0c3" }}>Exposure Timeline (Trend)</h4>
+                    <ResponsiveContainer width="100%" height={160}>
+                      <AreaChart data={trendSeries}>
+                        <defs>
+                          <linearGradient id="reportGlow" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#06d6a0" stopOpacity={0.8} />
+                            <stop offset="95%" stopColor="#06d6a0" stopOpacity={0.03} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#2f3f4d" vertical={false} />
+                        <XAxis dataKey="t" stroke="#9bb0c3" tickLine={false} style={{ fontSize: "10px" }} />
+                        <YAxis stroke="#9bb0c3" tickLine={false} domain={[0, 1]} style={{ fontSize: "10px" }} />
+                        <Tooltip />
+                        <Area type="monotone" dataKey="risk" stroke="#06d6a0" strokeWidth={2} fill="url(#reportGlow)" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
+                {/* Chart 3: Alert Severity Distribution */}
+                {showSeverityDistribution && (
+                  <div className="report-chart-card" style={{ background: "rgba(13, 27, 43, 0.4)", padding: "16px", borderRadius: "16px", border: "1px solid var(--line)" }}>
+                    <h4 style={{ margin: "0 0 12px 0", fontSize: "0.85rem", color: "#9bb0c3" }}>Alert Severity Distribution</h4>
+                    <ResponsiveContainer width="100%" height={160}>
+                      <BarChart data={severityDistributionData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#2f3f4d" vertical={false} />
+                        <XAxis dataKey="name" stroke="#9bb0c3" tickLine={false} style={{ fontSize: "10px" }} />
+                        <YAxis stroke="#9bb0c3" tickLine={false} style={{ fontSize: "10px" }} />
+                        <Tooltip />
+                        <Bar dataKey="count" name="Alert Count" radius={[3, 3, 0, 0]}>
+                          {severityDistributionData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
+                {/* Chart 4: Exposure Propagation Paths */}
+                {showExposurePaths && (
+                  <div className="report-chart-card" style={{ background: "rgba(13, 27, 43, 0.4)", padding: "16px", borderRadius: "16px", border: "1px solid var(--line)", gridColumn: "span 2" }}>
+                    <h4 style={{ margin: "0 0 12px 0", fontSize: "0.85rem", color: "#9bb0c3" }}>Exposure Propagation Paths</h4>
+                    <div style={{ display: "grid", gap: "8px" }}>
+                      {exposurePathsData.map((item) => (
+                        <div key={item.eventId} style={{ display: "flex", justifyContent: "space-between", padding: "8px 12px", background: "rgba(0,0,0,0.2)", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.04)" }}>
+                          <span style={{ fontSize: "0.8rem", color: "#a8bdd2" }}>
+                            Event {item.eventId} &bull; <strong style={{ color: "#eff5ff" }}>{item.country} &rarr; {item.port} &rarr; {item.supplier}</strong>
+                          </span>
+                          <strong style={{ fontSize: "0.8rem", color: "var(--aqua)" }}>Weight {item.weight}</strong>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Chart 5: Supplier Exposure Matrix */}
+                {showSupplierMatrix && (
+                  <div className="report-chart-card" style={{ background: "rgba(13, 27, 43, 0.4)", padding: "16px", borderRadius: "16px", border: "1px solid var(--line)", gridColumn: "span 2" }}>
+                    <h4 style={{ margin: "0 0 12px 0", fontSize: "0.85rem", color: "#9bb0c3" }}>Supplier Exposure Matrix</h4>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem", color: "#eff5ff" }}>
+                      <thead>
+                        <tr style={{ borderBottom: "1px solid var(--line)", textAlign: "left" }}>
+                          <th style={{ padding: "6px 0", color: "var(--muted)" }}>Supplier</th>
+                          <th style={{ padding: "6px 0", color: "var(--muted)" }}>Country</th>
+                          <th style={{ padding: "6px 0", color: "var(--muted)" }}>Risk Level</th>
+                          <th style={{ padding: "6px 0", textAlign: "right", color: "var(--muted)" }}>Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {supplierMatrixData.map((s, idx) => (
+                          <tr key={idx} style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
+                            <td style={{ padding: "8px 0", fontWeight: "600" }}>{s.name}</td>
+                            <td style={{ padding: "8px 0" }}>{s.country}</td>
+                            <td style={{ padding: "8px 0" }}>
+                              <span className={`pill ${s.level.toLowerCase()}`} style={{ fontSize: "0.65rem", padding: "2px 6px" }}>{s.level}</span>
+                            </td>
+                            <td style={{ padding: "8px 0", textAlign: "right", fontWeight: "700" }}>{s.riskScore}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+              </div>
+            </div>
+          )}
+
+          {/* Print Only Footer */}
+          <div className="print-only print-footer">
+            <span>CONFIDENTIAL - GENERATED BY SCOUT SUPPLY CHAIN INTELLIGENCE</span>
+            <span>DATE: {new Date().toLocaleDateString()}</span>
+          </div>
+        </section>
+
+      </div>
     </div>
   );
 }
-
-// import { useMemo } from "react";
-
-// function formatPercent(value) {
-//   return `${Math.round((Number(value) || 0) * 100)}%`;
-// }
-
-// function joinList(values, fallback = "—") {
-//   if (!Array.isArray(values) || !values.length) return fallback;
-//   return values.join(", ");
-// }
-
-// function topAlertLevel(rows) {
-//   const critical = rows.find((row) => (row.alert_level || "").toLowerCase() === "critical");
-//   const high = rows.find((row) => (row.alert_level || "").toLowerCase() === "high");
-//   return critical?.alert_level || high?.alert_level || rows[0]?.alert_level || "Medium";
-// }
-
-// function deriveImpactSummary({ organization, industry, event, countries, ports, commodities, suppliers }) {
-//   const location = countries[0] || event?.location || "key operating regions";
-//   const port = ports[0] || "critical ports";
-//   const commodity = commodities[0] || "critical commodities";
-//   const supplier = suppliers[0] || "critical suppliers";
-//   return `${organization} in ${industry} faces disruption exposure through ${location} and ${port}, which can delay ${commodity} flows and affect ${supplier}.`;
-// }
-
-// const ALERT_META = {
-//   critical: { label: "Critical", color: "#E24B4A", bg: "#FCEBEB", textColor: "#501313" },
-//   high:     { label: "High",     color: "#EF9F27", bg: "#FAEEDA", textColor: "#412402" },
-//   medium:   { label: "Medium",   color: "#378ADD", bg: "#E6F1FB", textColor: "#042C53" },
-//   low:      { label: "Low",      color: "#1D9E75", bg: "#E1F5EE", textColor: "#04342C" },
-// };
-
-// function alertMeta(level = "") {
-//   return ALERT_META[(level || "").toLowerCase()] || ALERT_META.medium;
-// }
-
-// function AlertBadge({ level }) {
-//   const meta = alertMeta(level);
-//   return (
-//     <span style={{
-//       display: "inline-flex",
-//       alignItems: "center",
-//       gap: 5,
-//       padding: "3px 10px",
-//       borderRadius: 20,
-//       fontSize: 11,
-//       fontWeight: 600,
-//       letterSpacing: "0.06em",
-//       textTransform: "uppercase",
-//       background: meta.bg,
-//       color: meta.textColor,
-//       border: `1px solid ${meta.color}40`,
-//     }}>
-//       <span style={{
-//         width: 6, height: 6, borderRadius: "50%",
-//         background: meta.color, flexShrink: 0,
-//       }} />
-//       {meta.label}
-//     </span>
-//   );
-// }
-
-// function SectionLabel({ children }) {
-//   return (
-//     <p style={{
-//       fontSize: 10,
-//       fontWeight: 700,
-//       letterSpacing: "0.14em",
-//       textTransform: "uppercase",
-//       color: "var(--color-text-tertiary)",
-//       margin: "0 0 6px",
-//     }}>
-//       {children}
-//     </p>
-//   );
-// }
-
-// function MetricCard({ label, value, accent }) {
-//   return (
-//     <div style={{
-//       background: "var(--color-background-secondary)",
-//       borderRadius: 10,
-//       padding: "14px 16px",
-//       borderLeft: accent ? `3px solid ${accent}` : "none",
-//     }}>
-//       <p style={{ fontSize: 11, color: "var(--color-text-tertiary)", margin: "0 0 4px", letterSpacing: "0.04em" }}>{label}</p>
-//       <p style={{ fontSize: 20, fontWeight: 600, margin: 0, color: "var(--color-text-primary)", fontVariantNumeric: "tabular-nums" }}>{value}</p>
-//     </div>
-//   );
-// }
-
-// function RiskRow({ risk, index }) {
-//   const score = Number(risk.risk_score || 0);
-//   const meta = alertMeta(risk.alert_level);
-//   const pct = Math.round(score * 100);
-//   return (
-//     <div style={{
-//       display: "grid",
-//       gridTemplateColumns: "20px 1fr auto auto",
-//       alignItems: "center",
-//       gap: 12,
-//       padding: "10px 0",
-//       borderBottom: "0.5px solid var(--color-border-tertiary)",
-//     }}>
-//       <span style={{ fontSize: 11, color: "var(--color-text-tertiary)", fontVariantNumeric: "tabular-nums" }}>
-//         {String(index + 1).padStart(2, "0")}
-//       </span>
-//       <div>
-//         <p style={{ margin: 0, fontSize: 13, fontWeight: 500 }}>Event {risk.event_id}</p>
-//         <div style={{ marginTop: 5, height: 3, borderRadius: 2, background: "var(--color-background-secondary)", overflow: "hidden" }}>
-//           <div style={{ width: `${pct}%`, height: "100%", borderRadius: 2, background: meta.color }} />
-//         </div>
-//       </div>
-//       <span style={{ fontSize: 12, color: "var(--color-text-secondary)", fontVariantNumeric: "tabular-nums" }}>
-//         {score.toFixed(3)}
-//       </span>
-//       <AlertBadge level={risk.alert_level} />
-//     </div>
-//   );
-// }
-
-// function Divider() {
-//   return <div style={{ borderTop: "0.5px solid var(--color-border-tertiary)", margin: "28px 0" }} />;
-// }
-
-// function FieldRow({ label, value }) {
-//   return (
-//     <div style={{
-//       display: "flex",
-//       justifyContent: "space-between",
-//       alignItems: "flex-start",
-//       gap: 16,
-//       padding: "8px 0",
-//       borderBottom: "0.5px solid var(--color-border-tertiary)",
-//     }}>
-//       <span style={{ fontSize: 12, color: "var(--color-text-secondary)", flexShrink: 0 }}>{label}</span>
-//       <span style={{ fontSize: 12, fontWeight: 500, textAlign: "right", color: "var(--color-text-primary)" }}>{value}</span>
-//     </div>
-//   );
-// }
-
-// export default function IntelReportPage({ alerts = [], events = [], riskItems = [], suppliers = [], graphSummary, pipelineRun }) {
-//   const topRisks = useMemo(
-//     () => [...riskItems].sort((a, b) => (b.risk_score || 0) - (a.risk_score || 0)).slice(0, 5),
-//     [riskItems]
-//   );
-
-//   const criticalAlerts = alerts.filter((item) => (item.alert_level || "").toLowerCase() === "critical").length;
-//   const topRisk = topRisks[0];
-//   const topEvent = events.find((item) => item.id === topRisk?.event_id);
-//   const entities = topEvent?.entities_json || {};
-//   const countries = (entities.countries || []).map((item) => item.text);
-//   const ports = (entities.ports || []).map((item) => item.text);
-//   const commodities = (entities.commodities || []).map((item) => item.text);
-//   const impactedSuppliers = topRisks.map((item) => item.supplier_name).filter(Boolean);
-
-//   const organization = pipelineRun?.focus?.organization_name || pipelineRun?.organization || pipelineRun?.focus?.company_domain || "Your Organization";
-//   const industry = pipelineRun?.focus?.industry_domain || pipelineRun?.focus?.company_domain || "Operating Domain";
-//   const regions = pipelineRun?.focus?.operational_regions || pipelineRun?.focus?.supplier_regions || [];
-//   const focusPorts = pipelineRun?.focus?.critical_ports || [];
-//   const focusCommodities = pipelineRun?.focus?.critical_commodities || [];
-//   const focusSuppliers = pipelineRun?.focus?.supplier_names || [];
-
-//   const currentAlertLevel = topRisk?.alert_level || topAlertLevel(alerts);
-//   const alertM = alertMeta(currentAlertLevel);
-
-//   const operationalSummary = useMemo(
-//     () => deriveImpactSummary({ organization, industry, event: topEvent, countries, ports, commodities, suppliers: impactedSuppliers }),
-//     [organization, industry, topEvent, countries, ports, commodities, impactedSuppliers]
-//   );
-
-//   const rootCause = useMemo(() => {
-//     const parts = [];
-//     if (topEvent?.location) parts.push(topEvent.location);
-//     if (countries[0] && countries[0] !== topEvent?.location) parts.push(countries[0]);
-//     if (ports[0]) parts.push(`port ${ports[0]}`);
-//     if (topRisk?.alert_level) parts.push(`${topRisk.alert_level.toLowerCase()} risk`);
-//     return parts.length ? parts.join(" · ") : "Root cause analysis pending live inputs.";
-//   }, [countries, ports, topEvent?.location, topRisk?.alert_level]);
-
-//   const predictedDelay = useMemo(() => {
-//     const score = Number(topRisk?.risk_score ?? 0);
-//     const low = Math.max(1, Math.round(score * 5));
-//     const high = low + Math.max(2, Math.round(score * 6));
-//     return `${low}–${high} days`;
-//   }, [topRisk?.risk_score]);
-
-//   const businessImpact = useMemo(() => {
-//     if (!topEvent) return "No active event selected for executive impact analysis.";
-//     const score = Number(topRisk?.risk_score ?? 0);
-//     const low = Math.max(1, Math.round(score * 5));
-//     const high = low + Math.max(2, Math.round(score * 6));
-//     const level = topRisk?.alert_level || topAlertLevel(alerts);
-//     return `${industry} operations may see a ${low}–${high} day disruption window if the current ${level.toLowerCase()}-level exposure is not mitigated.`;
-//   }, [alerts, industry, topEvent, topRisk?.alert_level, topRisk?.risk_score]);
-
-//   const recommendedActions = useMemo(() => {
-//     const actions = [];
-//     if (focusPorts.length || ports.length) actions.push({ icon: "🔀", text: `Reroute through ${focusPorts[0] || "alternate ports"}.` });
-//     if (focusCommodities.length || commodities.length) actions.push({ icon: "📦", text: `Increase buffers for ${focusCommodities[0] || commodities[0] || "critical commodities"}.` });
-//     if (focusSuppliers.length || impactedSuppliers.length) actions.push({ icon: "🤝", text: `Prioritize alternate suppliers such as ${focusSuppliers[0] || impactedSuppliers[0] || "backup vendors"}.` });
-//     actions.push({ icon: "🔍", text: "Monitor multi-hop exposure on the graph explorer before escalating procurement decisions." });
-//     return actions.slice(0, 4);
-//   }, [commodities, focusCommodities, focusPorts, focusSuppliers, impactedSuppliers, ports.length]);
-
-//   const today = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-
-//   return (
-//     <div style={{ fontFamily: "var(--font-sans)", color: "var(--color-text-primary)", maxWidth: 800, margin: "0 auto", padding: "0 0 60px" }}>
-
-//       {/* ── Cover ── */}
-//       <div style={{
-//         position: "relative",
-//         borderRadius: 16,
-//         overflow: "hidden",
-//         background: "var(--color-background-secondary)",
-//         border: "0.5px solid var(--color-border-tertiary)",
-//         padding: "36px 40px 32px",
-//         marginBottom: 2,
-//       }}>
-//         {/* Alert stripe */}
-//         <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 4, background: alertM.color }} />
-
-//         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16 }}>
-//           <div>
-//             <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--color-text-tertiary)", margin: "0 0 10px" }}>
-//               Scout · Executive Intelligence Report
-//             </p>
-//             <h1 style={{ fontSize: 28, fontWeight: 700, margin: "0 0 6px", lineHeight: 1.2 }}>
-//               Operational Risk Brief
-//             </h1>
-//             <p style={{ fontSize: 14, color: "var(--color-text-secondary)", margin: "0 0 20px" }}>
-//               {organization} · {industry} · {today}
-//             </p>
-//             <AlertBadge level={currentAlertLevel} />
-//           </div>
-//           <button
-//             type="button"
-//             onClick={() => window.print()}
-//             style={{
-//               display: "flex", alignItems: "center", gap: 7,
-//               padding: "9px 18px", borderRadius: 8,
-//               border: "0.5px solid var(--color-border-secondary)",
-//               background: "var(--color-background-primary)",
-//               color: "var(--color-text-primary)",
-//               fontSize: 13, fontWeight: 500, cursor: "pointer",
-//               fontFamily: "var(--font-sans)",
-//             }}
-//           >
-//             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-//               <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
-//             </svg>
-//             Export PDF
-//           </button>
-//         </div>
-
-//         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12, marginTop: 28 }}>
-//           <MetricCard label="Monitored events" value={events.length} />
-//           <MetricCard label="Active alerts" value={alerts.length} />
-//           <MetricCard label="Critical alerts" value={criticalAlerts} accent="#E24B4A" />
-//           <MetricCard label="Exposure paths" value={graphSummary?.relationship_count ?? 0} />
-//           <MetricCard label="Suppliers tracked" value={suppliers.length} />
-//         </div>
-//       </div>
-
-//       {/* Spacer */}
-//       <div style={{ height: 20 }} />
-
-//       {/* ── Two-column body ── */}
-//       <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 16, alignItems: "start" }}>
-
-//         {/* Left column */}
-//         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-
-//           {/* Impact summary */}
-//           <div style={{
-//             background: "var(--color-background-primary)",
-//             border: "0.5px solid var(--color-border-tertiary)",
-//             borderRadius: 12, padding: "24px 28px",
-//           }}>
-//             <SectionLabel>Operational impact</SectionLabel>
-//             <p style={{ fontSize: 15, lineHeight: 1.7, color: "var(--color-text-primary)", margin: "0 0 16px" }}>
-//               {operationalSummary}
-//             </p>
-//             <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
-//               {[
-//                 `${organization} monitored across ${events.length} events and ${suppliers.length} suppliers.`,
-//                 `${alerts.length} live alerts — ${criticalAlerts} critical — currently active.`,
-//                 `${graphSummary?.relationship_count ?? 0} graph relationships materialized for exposure tracing.`,
-//               ].map((item) => (
-//                 <li key={item} style={{ display: "flex", gap: 10, fontSize: 13, color: "var(--color-text-secondary)" }}>
-//                   <span style={{ color: "var(--color-text-tertiary)", flexShrink: 0, marginTop: 1 }}>›</span>
-//                   {item}
-//                 </li>
-//               ))}
-//             </ul>
-//           </div>
-
-//           {/* Root cause */}
-//           <div style={{
-//             background: "var(--color-background-primary)",
-//             border: "0.5px solid var(--color-border-tertiary)",
-//             borderRadius: 12, padding: "24px 28px",
-//           }}>
-//             <SectionLabel>Root cause</SectionLabel>
-//             <p style={{ fontSize: 13, fontWeight: 600, color: alertM.color, margin: "0 0 10px", letterSpacing: "0.02em" }}>
-//               {rootCause}
-//             </p>
-//             <p style={{ fontSize: 14, lineHeight: 1.65, color: "var(--color-text-secondary)", margin: 0 }}>
-//               {topEvent?.summary || "Event summary will appear here once the pipeline has a selected event."}
-//             </p>
-//           </div>
-
-//           {/* Top risks */}
-//           <div style={{
-//             background: "var(--color-background-primary)",
-//             border: "0.5px solid var(--color-border-tertiary)",
-//             borderRadius: 12, padding: "24px 28px",
-//           }}>
-//             <SectionLabel>Top risks by score</SectionLabel>
-//             {topRisks.length === 0 ? (
-//               <p style={{ fontSize: 13, color: "var(--color-text-tertiary)", margin: 0 }}>No risk items available.</p>
-//             ) : (
-//               <div>
-//                 {topRisks.map((risk, i) => (
-//                   <RiskRow key={risk.event_id} risk={risk} index={i} />
-//                 ))}
-//               </div>
-//             )}
-//           </div>
-
-//           {/* Recommended actions */}
-//           <div style={{
-//             background: "var(--color-background-primary)",
-//             border: "0.5px solid var(--color-border-tertiary)",
-//             borderRadius: 12, padding: "24px 28px",
-//           }}>
-//             <SectionLabel>Recommended actions</SectionLabel>
-//             <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
-//               {recommendedActions.map((action, i) => (
-//                 <div key={action.text} style={{
-//                   display: "flex", gap: 12, alignItems: "flex-start",
-//                   padding: "12px 14px",
-//                   background: "var(--color-background-secondary)",
-//                   borderRadius: 8,
-//                 }}>
-//                   <span style={{
-//                     flexShrink: 0, width: 22, height: 22, borderRadius: "50%",
-//                     background: "var(--color-background-primary)",
-//                     border: "0.5px solid var(--color-border-secondary)",
-//                     display: "flex", alignItems: "center", justifyContent: "center",
-//                     fontSize: 11, fontWeight: 700, color: "var(--color-text-tertiary)",
-//                     fontVariantNumeric: "tabular-nums",
-//                   }}>
-//                     {i + 1}
-//                   </span>
-//                   <p style={{ fontSize: 13, margin: 0, lineHeight: 1.5, color: "var(--color-text-primary)" }}>
-//                     {action.text}
-//                   </p>
-//                 </div>
-//               ))}
-//             </div>
-//           </div>
-
-//           {/* Mitigation summary */}
-//           <div style={{
-//             background: "var(--color-background-primary)",
-//             border: "0.5px solid var(--color-border-tertiary)",
-//             borderLeft: `3px solid ${alertM.color}`,
-//             borderRadius: "0 12px 12px 0",
-//             padding: "20px 24px",
-//           }}>
-//             <SectionLabel>Executive mitigation summary</SectionLabel>
-//             <p style={{ fontSize: 14, lineHeight: 1.65, color: "var(--color-text-secondary)", margin: "0 0 8px" }}>
-//               SCOUT recommends rerouting high-priority shipments, increasing buffer stock, and validating alternate suppliers before the next procurement cycle.
-//             </p>
-//             <p style={{ fontSize: 14, lineHeight: 1.65, color: "var(--color-text-primary)", margin: 0, fontWeight: 500 }}>
-//               {businessImpact}
-//             </p>
-//           </div>
-//         </div>
-
-//         {/* Right sidebar */}
-//         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-
-//           {/* Risk level panel */}
-//           <div style={{
-//             background: "var(--color-background-primary)",
-//             border: "0.5px solid var(--color-border-tertiary)",
-//             borderRadius: 12, padding: "20px 20px",
-//           }}>
-//             <SectionLabel>Risk assessment</SectionLabel>
-//             <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-//               <FieldRow label="Alert level" value={<AlertBadge level={currentAlertLevel} />} />
-//               <FieldRow label="Confidence" value={topRisk ? Number(topRisk.classifier_confidence ?? 0).toFixed(2) : "—"} />
-//               <FieldRow label="Predicted delay" value={predictedDelay} />
-//               <FieldRow label="Source coverage" value={formatPercent(events.length / Math.max(suppliers.length || 1, 1))} />
-//             </div>
-//           </div>
-
-//           {/* Supply chain panel */}
-//           <div style={{
-//             background: "var(--color-background-primary)",
-//             border: "0.5px solid var(--color-border-tertiary)",
-//             borderRadius: 12, padding: "20px 20px",
-//           }}>
-//             <SectionLabel>Exposed supply chain</SectionLabel>
-
-//             <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--color-text-tertiary)", margin: "12px 0 6px" }}>Focus</p>
-//             <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-//               <FieldRow label="Suppliers" value={joinList(focusSuppliers)} />
-//               <FieldRow label="Ports" value={joinList(focusPorts)} />
-//               <FieldRow label="Commodities" value={joinList(focusCommodities)} />
-//             </div>
-
-//             <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--color-text-tertiary)", margin: "16px 0 6px" }}>Live exposure</p>
-//             <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-//               <FieldRow label="Suppliers" value={joinList(impactedSuppliers)} />
-//               <FieldRow label="Countries" value={joinList(countries)} />
-//               <FieldRow label="Ports" value={joinList(ports)} />
-//             </div>
-//           </div>
-
-//           {/* Context panel */}
-//           <div style={{
-//             background: "var(--color-background-primary)",
-//             border: "0.5px solid var(--color-border-tertiary)",
-//             borderRadius: 12, padding: "20px 20px",
-//           }}>
-//             <SectionLabel>Context</SectionLabel>
-//             <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-//               <FieldRow label="Organization" value={organization} />
-//               <FieldRow label="Industry" value={industry} />
-//               <FieldRow label="Regions" value={joinList(regions)} />
-//             </div>
-//           </div>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }

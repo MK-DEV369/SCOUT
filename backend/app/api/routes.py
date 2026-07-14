@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 
 from app.db.models import UnifiedRecord, EventRecord
 from app.db.session import engine, get_db
-from app.graph.neo4j_client import graph_service
 from app.ingestion.service import ingestion_service
 from app.ingestion.scheduler import run_ingestion_job
 from app.nlp.explainability import generate_event_explanation
@@ -23,27 +22,16 @@ def health() -> dict:
     except Exception as exc:  # noqa: BLE001
         db_error = str(exc)
 
-    neo4j_status = "disabled"
-    neo4j_error = None
-    if graph_service.enabled and graph_service.driver is not None:
-        try:
-            with graph_service.driver.session(database=graph_service.database) as session:
-                session.run("RETURN 1 AS ok").single()
-            neo4j_status = "connected"
-        except Exception as exc:  # noqa: BLE001
-            neo4j_status = "disconnected"
-            neo4j_error = str(exc)
-
     ingestion_ready = db_status == "connected"
 
     return {
         "status": "ok" if db_status == "connected" else "degraded",
         "db": db_status,
-        "neo4j": neo4j_status,
+        "neo4j": "removed",
         "ingestion": "ready" if ingestion_ready else "not_ready",
         "errors": {
             "db": db_error,
-            "neo4j": neo4j_error,
+            "neo4j": None,
         },
     }
 

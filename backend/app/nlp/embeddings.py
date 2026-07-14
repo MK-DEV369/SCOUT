@@ -5,38 +5,11 @@ import hashlib
 import logging
 import re
 
-import torch
-
-from app.core.config import settings
-
-
 logger = logging.getLogger(__name__)
 _EMBEDDING_CACHE: dict[str, List[float]] = {}
 
 
-@lru_cache(maxsize=1)
-def get_embedding_model() -> Optional[Any]:
-    """Load and cache the SentenceTransformer model.
-
-    Uses `settings.embedding_model` if present; defaults to all-mpnet-base-v2.
-    """
-    model_id = getattr(settings, "embedding_model", "sentence-transformers/all-mpnet-base-v2")
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-
-    try:
-        from sentence_transformers import SentenceTransformer
-
-        return SentenceTransformer(model_id, device=device)
-    except Exception as exc:
-        logger.warning(
-            "SentenceTransformer unavailable; using fallback embeddings for %s (%s)",
-            model_id,
-            exc,
-        )
-        return None
-
-
-def _fallback_embedding(text: str, dimensions: int = 384) -> List[float]:
+def _fallback_embedding(text: str, dimensions: int = 768) -> List[float]:
     tokens = re.findall(r"[A-Za-z0-9]+", text.lower())
     if not tokens:
         return []
@@ -58,7 +31,11 @@ def _cache_key(text: str) -> str:
 
 
 def embed_text(text: str) -> List[float]:
-    """Return a single embedding vector for the provided text as a list of floats."""
+    """Return a single embedding vector for the provided text as a list of floats.
+    
+    Tries to use the Ollama API with 'nomic-embed-text' model, and falls back to a 
+    768-dimensional local embedding if Ollama is not running.
+    """
     if not text:
         logger.debug("Embedding skipped because input text was empty")
         return []
@@ -69,21 +46,43 @@ def embed_text(text: str) -> List[float]:
         logger.debug("Embedding cache hit text_length=%s vector_length=%s", len(text), len(cached))
         return cached
 
-    model = get_embedding_model()
-    if model is None:
-        logger.debug("Using fallback embedding model for text_length=%s", len(text))
-        embedding = _fallback_embedding(text)
-        _EMBEDDING_CACHE[key] = embedding
-        return embedding
+    import httpx
+    import time
+    
+    url = "http://localhost:11434/api/embeddings"
+    payload = {
+        "model": "nomic-embed-text",
+        "prompt": text[:4000]
+    }
+    
+    max_retries = 3
+    last_exc = None
+    
+    for attempt in range(max_retries):
+        try:
+            response = httpx.post(url, json=payload, timeout=30.0)
+            if response.status_code == 200:
+                embedding = response.json().get("embedding", [])
+                if embedding:
+                    _EMBEDDING_CACHE[key] = embedding
+                    logger.debug("Generated embedding using Ollama nomic-embed-text: %d dimensions", len(embedding))
+                    return embedding
+            else:
+                logger.warning(
+                    "Ollama returned status_code=%d on attempt %d/3",
+                    response.status_code,
+                    attempt + 1
+                )
+        except Exception as exc:
+            last_exc = exc
+            logger.warning(
+                "Ollama embedding attempt %d/3 failed: %s",
+                attempt + 1,
+                exc
+            )
+        if attempt < max_retries - 1:
+            time.sleep(1.0)
 
-    # keep a sane max length (characters) to avoid very long inputs
-    snippet = text[:2000]
-    emb = model.encode(snippet, convert_to_numpy=True)
-    try:
-        embedding = emb.tolist()
-    except Exception:
-        embedding = [float(x) for x in emb]
-
-    _EMBEDDING_CACHE[key] = embedding
-    logger.debug("Generated embedding text_length=%s vector_length=%s", len(text), len(embedding))
-    return embedding
+    raise RuntimeError(
+        f"Ollama nomic-embed-text embedding failed after {max_retries} attempts: {last_exc}"
+    ) from last_exc

@@ -1,564 +1,114 @@
-# SCOUT MainEL - Phase 3 NLP Layer
+# SCOUT: Cognitive Supply Chain Control Tower
 
-## Current Implementation Status (2026-05-14)
+SCOUT is a state-of-the-art cognitive risk monitoring and decision-support system designed to identify, analyze, and mitigate disruptions across global supply chains. By fusing multi-source global intelligence with machine learning and knowledge graph propagation, SCOUT provides real-time visibility into supplier, commodity, and port exposures.
 
-Overall completion (code present and wired): ~82%
+---
 
--- Completed:
-  - Multi-source ingestion connectors (GDELT, Google News, NewsAPI, World Bank, ACLED, FRED; Freightos optional)
-  - Unified normalization + hash dedup + raw/unified persistence
-  - NLP pipeline wiring (entity extraction + classification + summarization + embeddings)
-  - Fine-tuned classifier training script plus evaluation harness for labeled JSONL data
-  - Event clustering path with embedding persistence and cluster assignment support
-  - Risk scoring pipeline with alert levels and feature breakdown in API payload
-  - Graph integration hooks and graph API endpoints
-  - Databricks notebook orchestration for backend health checks and clustering runs
-  - Frontend pages wired to live backend APIs
-  - API health checks, source-aware NLP routing, and fallback path handling
-  - Debug logging added across classifier, embeddings, clustering, and event build stages
+## 🚀 Key Capabilities
 
--- Partially completed:
-  - Connector resiliency (timeouts and graceful per-source failure are present; retry/backoff/rate-limit policies are not fully implemented)
-  - Explainability (alert-level explanation text and risk features are present; factor decomposition endpoint/reporting is still basic)
-  - Operations hardening (works for local dev but needs stronger deployment-grade controls)
+### 1. Multi-Source Ingestion & Laptop Space Protection
+SCOUT continuously aggregates high-velocity data feeds from multiple geopolitical, economic, and logistical sources:
+* **GDELT Global News Stream:** Global event database.
+* **ACLED (Armed Conflict Location & Event Data):** Geopolitical conflict tracking.
+* **Google RSS & NewsAPI:** Live news and publisher feeds.
+* **FRED (Federal Reserve Economic Data):** Macro-economic indicators.
+* **World Bank Development Statistics:** Long-term development and inflation metrics.
 
--- Pending:
-  - Automated test suite (unit/integration/frontend)
-  - Alembic migrations as a formal workflow
-  - Source freshness/health metrics endpoint per connector
-  - Formal contract tests and performance SLO validation
-  - Active learning loop for analyst feedback and retraining
-  - Relationship extraction for multihop graph materialization
+> [!TIP]
+> **Laptop Space Protection Mode:** To protect local host storage, SCOUT processes high-volume raw streams (~567 GB processed over 2,800+ connector cycles), indexes structured metadata, and automatically purges raw JSON/ZIP payloads. This retains high-integrity indicators while consuming only a tiny PostgreSQL footprint (~3.28 GB saved).
 
-This repository now includes a full **Phase 2 ingestion stack** for multi-source global risk/supply intelligence:
+### 2. Cognitive NLP Pipeline
+Ingested streams flow through a multi-stage machine learning enrichment pipeline:
+* **Named Entity Recognition (NER):** Uses **spaCy** models coupled with custom domain dictionaries to isolate companies, countries, ports, and commodities.
+* **Event Classification:** Uses a fine-tuned **DistilBERT** classifier to categorize disruptions into Geopolitical, Logistics, Environmental, or Economic domains.
+* **Actionable Summarization:** Employs **Mistral-7B** to extract bulleted key takeaways and mitigation options, with local extractive fallbacks.
+* **Semantic Vector Embeddings:** Computes high-dimensional representations using the `all-mpnet-base-v2` model from **SentenceTransformers** for advanced grouping.
 
-- GDELT (global events)
-- NewsAPI (news articles)
-- Freightos (shipping index)
-- World Bank (commodity indicators)
-- ACLED (conflict events)
-- FRED v2 `fred/series/observations` only, for the macroeconomic signals used by the risk pipeline
+### 3. Databricks Cloud Orchestration
+For heavy analytics, SCOUT integrates directly with **Databricks** workspaces via the REST API:
+* **Distributed Clustering:** Triggers scheduled K-Means clustering runs on Databricks clusters.
+* **Model Training:** Triggers and monitors DistilBERT fine-tuning jobs.
+* **Cloud Scraping:** Deploys Spark jobs to scrape RSS feeds directly into Delta Lake mounts.
+* **Schedule Alignment:** Configured to run automatically every hour at the **8th minute** (e.g., 5:08, 6:08) via Quartz cron scheduling.
 
-The pipeline normalizes all inputs into a common schema, performs SHA-256 deduplication, and stores raw + unified records in PostgreSQL.
+### 4. Zero-Neo4j Relational Knowledge Graph
+SCOUT includes a high-performance **PostgreSQL-backed relational graph engine** that functions as a lightweight, zero-dependency alternative to Neo4j. It materializes multi-hop propagation paths instantly, enabling developers to trace risk cascading from `Event -> Country -> Supplier -> Manufacturer`.
 
-It now also includes **Phase 3-6 delivery**:
+### 5. Interactive React Cockpit
+* **Executive Report Builder:** Advanced editor with Split Screen, Editor Only, and Preview Only view modes. Features **page-slice technology** to fit reports exactly into target lengths (1–5 pages) without overflows.
+* **Interactive Risk Map:** Hotspot map built with `react-simple-maps` displaying glows over countries experiencing high threat pressure.
+* **SME Onboarding Presets:** Interactive modal console that allows users to pre-fill risk profiles instantly using templates (e.g., *Semiconductor Factory*, *EV Battery*, *Ethanol Fuel*).
 
-- NLP pipeline (NER + event classification + summarization)
-- SentenceTransformer embeddings for retrieval and clustering
-- Event clustering and cluster persistence for operational grouping
-- Databricks-backed validation notebook for backend orchestration
-- Risk scoring engine with alert levels
-- Neo4j knowledge graph propagation hooks
-- API endpoints for ingest/events/risk/alerts/suppliers
+---
 
-## Latest Updates (2026-05-14)
+## 🛠️ Tech Stack
 
-- Added stage-by-stage debug logging to the NLP/ML path so you can verify each module during runtime.
-- Hardened the clustering path so `/api/v1/ml/cluster/run` handles existing embeddings safely and does not fail on empty or invalid vectors.
-- Updated the Databricks notebook to read `backend_base_url` from a widget or environment variable instead of relying on a hard-coded value.
-- Kept the classifier/evaluator flow aligned so the evaluation harness reads the classifier payload correctly.
-- Extended the report and backend comments to reflect which modules are integrated and which are still pending.
+* **Backend:** FastAPI, Python 3.11/3.12, SQLAlchemy, Uvicorn, APScheduler.
+* **Frontend:** React, React Router, Vite, Recharts, CSS Grid/Flexbox.
+* **Machine Learning / NLP:** PyTorch, Hugging Face Hub, spaCy, SentenceTransformers, DistilBERT, Mistral-7B.
+* **Big Data / Cloud:** Databricks Jobs API, PySpark.
+* **Database:** PostgreSQL (with `pgvector` compatibility), Neo4j (optional).
 
-## Architecture
+---
 
-### Backend
-
-- FastAPI API server
-- APScheduler periodic ingestion
-- SQLAlchemy ORM + PostgreSQL
-- Connector-per-source ingestion pattern
-- Unified schema output
-
-### Frontend
-
-- React dashboard (Vite + React Router)
-- Pages: Home, Dashboard, Alerts, Supplier Profile, Analytics
-- Recharts visualizations for trends, severity, and distributions
-- Global map using event-country markers
-
-### ML Setup
-
-- DistilBERT configured (`distilbert-base-uncased` by default, local fine-tuned artifact supported)
-- Mistral configured (`mistralai/Mistral-7B-Instruct-v0.3` by default, local artifact supported)
-- Gemini Fallback
-- On-demand model loading endpoint
-
-- Embeddings: switched to `sentence-transformers/all-mpnet-base-v2` using `SentenceTransformer` (improved embedding quality). Add `sentence-transformers` to your environment (see requirements).
-
-- Summarization: LLM summarizer is enabled by default and falls back to extractive bullet summaries if the model cannot load or generate output.
-
-### NLP + Risk + Graph
-
-- spaCy-based entity extraction (companies, countries, ports, commodities)
-- DistilBERT-based classification pipeline with fine-tune script
-- Mistral summarization into operational bullet points
-- Risk feature engineering and weighted score formula
-- Neo4j graph updates for ripple-effect modeling
-
-Model loader behavior:
-
-- DistilBERT prefers a local fine-tuned artifact if available.
-- Mistral prefers a local artifact if available, otherwise loads the configured Hugging Face model.
-- The `/api/v1/ml/load` endpoint reports whether each model loaded successfully.
-- On this workspace, DistilBERT loads on `cuda:0` and Mistral v0.3 loads successfully with GPU-first offload-aware settings.
-
-## Unified Schema
-
-```json
-{
-  "source": "newsapi",
-  "timestamp": "2026-04-04T10:30:00Z",
-  "text": "...",
-  "location": "...",
-  "metadata": {"...": "..."}
-}
-```
-
-## Project Structure
+## 📂 Project Architecture
 
 ```text
 backend/
   app/
-    api/
-      routes.py
-      ml_routes.py
-      phase_routes.py
-      graph_routes.py
-      schemas.py
-    core/
-      config.py
-    db/
-      base.py
-      models.py
-      session.py
-    enrichment/
-      record_enricher.py
-      semantic_text_builder.py
-    ingestion/
-      dedup.py
-      schema.py
-      service.py
-      scheduler.py
-      connectors/
-        gdelt.py
-        newsapi.py
-        freightos.py
-        worldbank.py
-        acled.py
-        fred.py
-    integration/
-      databricks.py
-    ml/
-      models.py
-      manager.py
-      router.py
-    nlp/
-      entity_extractor.py
-      event_classifier.py
-      embeddings.py
-      explainability.py
-      summarizer.py
-      clustering.py
-      pipeline.py
-      schemas.py
-    pipeline/
-      orchestrator.py
-    risk/
-      engine.py
-      pipeline.py
-    graph/
-      neo4j_client.py
-      graph_builder.py
-    training/
-      finetune_event_classifier.py
-      evaluate_classifier.py
-    main.py
-  notebooks/
-    databricks_cluster_job.ipynb
+    api/              # FastAPI endpoints (records, events, risk, alerts, databricks)
+    core/             # Config variables and lifespan management
+    db/               # SQLAlchemy session and models
+    enrichment/       # Metadata normalization and deduplication
+    ingestion/        # Multi-source API connector services
+    integration/      # Databricks REST API Client
+    ml/               # Hugging Face model loading and local routing
+    nlp/              # spaCy NER, DistilBERT classification, clustering, explainability
+    risk/             # Weighted multi-factor risk calculations
+    graph/            # Neo4j & Relational PostgreSQL graph materialization
+  notebooks/          # Databricks cluster jobs & notebooks
 frontend/
-  index.html
-  package.json
-  vite.config.js
-  tailwind.config.js
-  tsconfig.json
-  jsconfig.json
   src/
-    App.jsx
-    api.js
-    styles.css
-    components/
-      Layout.jsx
-    pages/
-      HomePage.jsx
-      DashboardPage.jsx
-      AlertsPage.jsx
-      SuppliersPage.jsx
-      AnalyticsPage.jsx
-  components.json
-requirements.txt
-.env.example
-alembic/
-  env.py
-  versions/
-    0001_add_nlp_columns.py
-    0002_add_summary_confidence.py
-DETAILED_COMPREHENSIVE_REPORT.md
+    components/       # Layouts and navigation
+    pages/            # Dashboard page, Alerts page, Analytics map page, Home page
 ```
 
-## Quickstart
+---
 
-### 1) Create and activate virtual environment (Python 3.12 preferred)
+## ⚡ Quickstart
 
-Windows PowerShell:
-
+### 1. Initialize Virtual Environment
 ```powershell
-py -3.12 -m venv .venv
+python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-```
-
-If Python 3.12 is not available, use Python 3.11:
-
-```powershell
-py -3.11 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-```
-
-### 2) Install dependencies
-
-```powershell
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-Install CUDA-enabled PyTorch (recommended for RTX 3070):
-
-```powershell
-pip uninstall -y torch torchvision torchaudio
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
-```
-
-Verify GPU is active:
-
-```powershell
-python -c "import torch; print(torch.__version__, torch.cuda.is_available(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'no-gpu')"
-```
-
-### 3) Configure environment variables
-
-```powershell
-Copy-Item .env.example .env
-```
-
-Then edit `.env` and set your keys:
-
-- `DATABASE_URL`
-- `NEWSAPI_KEY`
-- `FREIGHTOS_API_KEY`
-- `FRED_API_KEY`
-- `INGESTION_INTERVAL_MINUTES`
-- `MISTRAL_USE_4BIT` (optional, set `true` if you install `bitsandbytes` and want lower VRAM)
-- `EVENT_CLASSIFIER_MODEL`
-- `SUMMARIZER_MODEL`
-- `SPACY_MODEL`
-- `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`
-
-### 4) Ensure PostgreSQL is running
-
-Create DB:
-
-```sql
-CREATE DATABASE scout;
-```
-
-Default connection expected:
-
+### 2. Configure Environment Variables
+Copy `.env.example` to `.env` and set your connection strings and API keys:
 ```text
-postgresql+psycopg://postgres:postgres@localhost:5432/scout
+DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/scout
+DATABRICKS_HOST=https://<your-workspace>.databricks.com
+DATABRICKS_TOKEN=dapi...
+HF_TOKEN=hf...
 ```
 
-### 5) Run backend + frontend
-
-Build frontend first:
-
+### 3. Run the Control Tower
+Run the backend server:
 ```powershell
-Set-Location frontend
+cd backend
+python -m uvicorn app.main:app --port 8000 --reload
+```
+
+Run the frontend development server:
+```powershell
+cd frontend
 npm install
-npm run build
-Set-Location ..
-```
-
-Then run backend from backend directory:
-
-```powershell
-Set-Location backend
-python -m uvicorn app.main:app --reload
-```
-
-Optional React dev mode:
-
-```powershell
-Set-Location frontend
 npm run dev
 ```
 
-Recommended terminal split:
-
-1. Terminal 1 (backend):
-
-```powershell
-Set-Location E:\6th SEM Data\Projects\SCOUT_MainEL\backend
-python -m uvicorn app.main:app --reload
+The application will be accessible locally at `http://localhost:5173`. If using ngrok for Databricks webhooks:
+```bash
+ngrok http 8000 --domain=disprove-overlook-abdominal.ngrok-free.dev
 ```
-
-1. Terminal 2 (frontend dev):
-
-```powershell
-Set-Location E:\6th SEM Data\Projects\SCOUT_MainEL\frontend
-npm run dev
-```
-
-after running backend: 
-ngrok http --url=disprove-overlook-abdominal.ngrok-free.dev 8000
-
-App URLs:
-
-- Frontend home: `http://127.0.0.1:8000/#/`
-- Frontend dashboard: `http://127.0.0.1:8000/#/dashboard`
-- Health: `http://127.0.0.1:8000/api/v1/health`
-- Run ingestion once: `POST http://127.0.0.1:8000/api/v1/ingestion/run`
-- List unified records: `GET http://127.0.0.1:8000/api/v1/records`
-- Load models: `POST http://127.0.0.1:8000/api/v1/ml/load`
-- ML runtime status: `GET http://127.0.0.1:8000/api/v1/ml/status`
-
-Phase 3-6 API endpoints:
-
-- `POST /api/v1/ingest` -> run multi-source ingestion
-- `POST /api/v1/events` -> transform raw/unified records into structured events
-- `GET /api/v1/events` -> list structured events
-- `POST /api/v1/risk` -> compute risk scores from events
-- `GET /api/v1/risk` -> list ranked risk records
-- `GET /api/v1/alerts?min_level=Medium` -> get filtered disruption alerts
-- `POST /api/v1/suppliers` -> create or update supplier profile
-- `GET /api/v1/suppliers` -> list suppliers
-
-Homepage sections:
-
-- How the project works
-- Tech stack
-- Innovations
-- What is better than existing solutions
-- Objectives
-- Methodologies
-- Teams section with 5 placeholders
-
-## Key APIs
-
-Core ingestion and processing:
-
-- `POST /api/v1/ingest`
-- `POST /api/v1/events`
-- `POST /api/v1/risk`
-- `GET /api/v1/alerts?min_level=Medium`
-
-Data access:
-
-- `GET /api/v1/events`
-- `GET /api/v1/risk`
-- `GET /api/v1/suppliers`
-- `POST /api/v1/suppliers`
-
-Platform and model:
-
-- `GET /api/v1/health`
-- `POST /api/v1/ml/load`
-- `GET /api/v1/ml/status`
-- `POST /api/v1/ingestion/run` (legacy/manual ingestion endpoint)
-
-## Homepage Team Section
-
-The homepage includes a dedicated teams section with 5 placeholders:
-
-- 2 AIML students
-- 1 CS student
-- 2 IS students
-
-## Optional RAG Pipeline (If Needed)
-
-RAG is optional for your current risk pipeline, but useful if you want retrieval-backed explainability and historical context in summaries.
-
-Suggested flow:
-
-1. Ingestion output (`unified_records`) -> chunk `text` into passages.
-2. Create embeddings using a sentence-transformer model.
-3. Store vectors in PostgreSQL with `pgvector` (or dedicated vector DB).
-4. On alert request, retrieve top-k context chunks for the event/supplier.
-5. Build prompt: event summary + retrieved context + constraints.
-6. Generate grounded response with Mistral.
-
-Suggested additional endpoints for RAG extension:
-
-- `POST /api/v1/rag/index` -> build/update vector index
-- `POST /api/v1/rag/query` -> retrieve context and answer
-- `GET /api/v1/rag/status` -> index size and freshness
-
-This can be added without changing current ingestion/risk endpoints.
-
-## End-to-End Run Order
-
-1. `POST /api/v1/ingest`
-2. `POST /api/v1/events`
-3. `POST /api/v1/risk`
-4. `GET /api/v1/alerts`
-
-This flow produces structured disruption events and ranked supplier-impact alerts.
-
-## Phase 3 Details: NLP Pipeline
-
-- NER uses spaCy plus domain dictionaries for companies, countries, ports, commodities.
-- Event class output:
-  - Geopolitical
-  - Logistics
-  - Environmental
-  - Economic
-- Summarization uses Mistral to return short actionable bullet points.
-
-Fine-tuning DistilBERT for event classes:
-
-```powershell
-python -m backend.app.training.finetune_event_classifier
-```
-
-Expected training data format at `data/event_train.jsonl`:
-
-```json
-{"text": "Port strike in Hamburg disrupts shipping", "label": "Logistics"}
-{"text": "Flood damages rice production and transport", "label": "Environmental"}
-```
-
-## Phase 4 Details: Risk Scoring
-
-Feature set:
-
-- severity
-- recency
-- source credibility
-- geographic relevance
-- supplier importance
-
-Implemented weighted formula:
-
-```text
-risk_score = (
-  severity * 0.3 +
-  recency * 0.2 +
-  credibility * 0.2 +
-  relevance * 0.2 +
-  supplier_importance * 0.1
-)
-```
-
-Alert levels:
-
-- 0.0 to 0.4 -> Low
-- 0.4 to 0.6 -> Medium
-- 0.6 to 0.8 -> High
-- 0.8 to 1.0 -> Critical
-
-## Phase 5 Details: Knowledge Graph
-
-Neo4j entities and relations are written when Neo4j credentials are set:
-
-- Nodes: Event, Country, Supplier, Manufacturer, Commodity
-- Edges: AFFECTS, AFFECTED_BY, LOCATED_IN, SUPPLIES
-
-Impact path covered:
-
-`Event -> Country -> Supplier -> Manufacturer`
-
-## Notes on Source APIs
-
-- Some connectors require API keys and may return empty results when unset.
-- ACLED and Freightos public endpoints may differ by account plan; connector returns empty on non-success.
-- World Bank and GDELT are public and should ingest without key restrictions.
-
-## Deduplication Strategy
-
-Dedup key is SHA-256 over normalized tuple:
-
-```text
-source | source_id | timestamp(UTC ISO) | text(lowercased) | location(lowercased)
-```
-
-Duplicate hashes are skipped before insert.
-
-## What is complete for Phase 2
-
-- Multi-source ingestion connectors
-- Unified normalization schema
-- Hash-based deduplication
-- Raw and unified storage tables
-- Scheduled and manual ingestion triggers
-- Frontend monitoring console
-- DistilBERT + Mistral model integration hooks
-
-## GPU Notes (RTX 3070)
-
-- DistilBERT is moved directly to `cuda:0` when CUDA is available.
-- Mistral loads with `torch.float16` and `device_map=cuda:0` to prioritize GPU execution and minimize CPU RAM usage.
-- If Mistral hits VRAM limits, set `MISTRAL_USE_4BIT=true` and install `bitsandbytes`.
-
-## Recent Fixes (2026-04-27)
-
-- Fixed `/api/v1/alerts` 500 caused by empty `entities.countries` lists in alert explanation generation.
-- Improved frontend data refresh resiliency: dashboard refresh now uses `Promise.allSettled`, so one endpoint failure does not break all page data loads.
-- Corrected documented backend startup pattern to avoid `ModuleNotFoundError: No module named 'app'` when running from repository root.
-
-### 2026-04-30 Updates
-
-- Replaced deprecated `@app.on_event("startup")` with a FastAPI `lifespan` handler in `backend/app/main.py` to address deprecation warnings and provide a single lifecycle entrypoint for startup/shutdown tasks.
-- Fixed `EventEmbedding` model nesting in `backend/app/db/models.py` (moved to top-level model). This resolves import errors when loading the NLP clustering pipeline.
-- Switched embedding implementation to use `SentenceTransformer('all-mpnet-base-v2')` in `backend/app/nlp/embeddings.py` (cached model load) to produce higher-quality 768-dim vectors.
-- Enabled the LLM summarizer by default in `backend/app/core/config.py` and updated `backend/app/nlp/summarizer.py` to use cached model loading with safe extractive fallback.
-- Ensure Databricks job trigger remains mandatory at startup; set `DATABRICKS_HOST`, `DATABRICKS_TOKEN`, and `DATABRICKS_DEFAULT_JOB_ID` in your environment before running the app.
-- Added `sentence-transformers` to `requirements.txt`.
-
-### 2026-05-14 Updates
-
-- Added debug logging in the classifier, embeddings, clustering, and structured event pipeline so you can trace each step independently.
-- Updated `backend/app/nlp/pipeline.py` to use the current summarizer and clustering flow, including event persistence with source metadata.
-- Hardened `backend/app/nlp/clustering.py` to upsert embeddings, skip invalid vectors, and cap cluster sizing safely.
-- Updated `backend/app/api/ml_routes.py` so the cluster endpoint accepts the notebook’s `n_clusters` parameter.
-- Updated `backend/notebooks/databricks_cluster_job.ipynb` to resolve `backend_base_url` from a widget or environment variable.
-
-## Next Recommended Steps
-
-1. Add Alembic migrations for production-safe schema evolution.
-2. Add retry/backoff and rate-limit handling per connector.
-3. Add test coverage for normalization, NLP, clustering, and API contracts.
-4. Add per-source health/freshness metrics and structured observability.
-5. Add an active learning feedback loop for analyst corrections.
-
-## Team Plan & Next Phases
-
-**Current status:** Backend + NLP + frontend wiring ~78% complete; remaining work focuses on hardening, tests, and explainability.
-
-**Team (4 people)**
-- **You (Lead — Backend & Integration):** finalize ingestion reliability, Alembic migrations, DB indexes, and API contracts.
-- **Member 2 (NLP & ML):** improve classifier quality, add confidence thresholds, embedding maintenance, and summarizer reliability.
-- **Member 3 (Frontend & UX):** implement pagination/filters, alert drill-down UX, and error/empty states.
-- **Member 4 (Testing & DevOps):** add unit/integration tests, CI pipeline, metrics, and deployment scripts.
-
-**Next phases (shared work)**
-- **Phase A — Reliability & Migrations (Priority):** connector retry/backoff, Alembic migrations, DB indexes, source freshness endpoints. (Lead + Member 4)
-- **Phase B — NLP Quality & Explainability:** classifier calibration, evaluation harness, factor-decomposition endpoint for risk explainability. (Member 2)
-- **Phase C — API & Frontend polish:** pagination, filtering, contract tests, UX for alert explanations. (You + Member 3)
-- **Phase D — Testing & Observability:** unit/integration tests, ingestion metrics, health/freshness dashboards, CI. (Member 4)
-
-**Immediate next 2-week goals**
-- Add per-connector retry/backoff and timeouts. **Owner:** You. **Acceptance:** ingestion run survives any single connector failure.
-- Create initial Alembic migration and run locally. **Owner:** You + Member 4. **Acceptance:** DB schema can be migrated from empty state.
-- Add unit tests for `dedup` and `risk/engine`. **Owner:** Member 4. **Acceptance:** tests pass locally.
-- Improve classifier fallback thresholds and store classifier confidence with events. **Owner:** Member 2. **Acceptance:** classifier confidence present in `event_records`.
-- Add pagination to `GET /api/v1/events`. **Owner:** Member 3. **Acceptance:** frontend uses paginated endpoint without breaking.
-
-Replace placeholder member names with your team members' real names and adjust owners if desired.

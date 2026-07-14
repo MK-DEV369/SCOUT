@@ -102,6 +102,10 @@ class IngestionService:
                     duplicates += 1
                     continue
 
+                source_url = item.metadata.get("url") or item.metadata.get("link") or item.source_id
+                source_outlet = item.metadata.get("source_name") or item.metadata.get("source") or item.location or item.source
+                source_credibility = float(item.metadata.get("credibility") or item.metadata.get("source_credibility") or 0.6)
+
                 raw = RawIngestionRecord(
                     source=item.source,
                     source_id=item.source_id,
@@ -116,6 +120,9 @@ class IngestionService:
                     timestamp=item.timestamp,
                     text=item.text,
                     location=item.location,
+                    source_url=source_url,
+                    source_outlet=source_outlet,
+                    source_credibility=source_credibility,
                     metadata_json=_stage_metadata(item),
                     content_hash=hash_value,
                 )

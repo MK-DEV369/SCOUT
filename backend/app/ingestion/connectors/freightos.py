@@ -1,14 +1,28 @@
+from datetime import datetime, timezone
 from typing import Any
 
 import httpx
 
 from app.core.config import settings
+from app.ingestion.connectors.base import SourceConnector
+from app.ingestion.schema import NormalizedRecord
 
 
-class FreightosConnector:
-    """Minimal Freightos helper for emissions and route-risk simulation."""
+class FreightosConnector(SourceConnector):
+    """Minimal Freightos helper for emissions and route-risk simulation.
 
+    The connector implements the minimal `SourceConnector` interface so the
+    ingestion runner can call `fetch()` safely. The network helpers below are
+    still available for when we re-enable full Freightos integration.
+    """
+
+    name = "freightos"
     base_url = "https://api.freightos.com/api/v1"
+
+    async def fetch(self) -> list[NormalizedRecord]:
+        if not settings.freightos_api_key or settings.freightos_api_key == "scout":
+            raise RuntimeError("FREIGHTOS_API_KEY is not configured")
+        return []
 
     def _auth_headers(self) -> dict:
         if not settings.freightos_api_key:

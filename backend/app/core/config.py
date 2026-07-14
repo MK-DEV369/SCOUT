@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     use_llm_summarizer: bool = True
     load_mistral_on_startup: bool = False
     mistral_min_free_vram_mb: int = 12000
-    allow_local_4bit_fallback: bool = True
+    allow_local_4bit_fallback: bool = Field(default=True, validation_alias=AliasChoices("MISTRAL_USE_4BIT"))
     llm_timeout_seconds: float = 20.0
     llm_max_output_tokens: int = 220
     databricks_llm_endpoint: str | None = Field(default=None, validation_alias=AliasChoices("DATABRICKS_LLM_ENDPOINT"))
@@ -42,15 +42,15 @@ class Settings(BaseSettings):
     spacy_model: str = "en_core_web_sm"
     embedding_model: str = "sentence-transformers/all-mpnet-base-v2"
 
-    ingestion_interval_minutes: int = 30
+    ingestion_interval_minutes: int = 15
+    nlp_interval_minutes: int = 15
+    risk_interval_minutes: int = 15
     ingestion_connector_timeout_seconds: int = 20
     ingestion_job_timeout_seconds: int = 60
+    nlp_job_timeout_seconds: int = Field(default=600, validation_alias=AliasChoices("NLP_JOB_TIMEOUT_SECONDS"))
+    risk_job_timeout_seconds: int = 120
     db_connect_timeout_seconds: int = 5
-
-    neo4j_uri: str = Field(default="neo4j+s://7bacfc87.databases.neo4j.io", validation_alias=AliasChoices("NEO4J_URI"))
-    neo4j_user: str = Field(default="7bacfc87", validation_alias=AliasChoices("NEO4J_USER", "NEO4J_USERNAME"))
-    neo4j_password: str = Field(default="", validation_alias=AliasChoices("NEO4J_PASSWORD"))
-    neo4j_database: str = Field(default="7bacfc87", validation_alias=AliasChoices("NEO4J_DATABASE"))
+    backend_embedding_enabled: bool = True
 
     databricks_host: str = Field(
         default="https://dbc-d28584e4-22cf.cloud.databricks.com",
@@ -63,32 +63,6 @@ class Settings(BaseSettings):
     )
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
-
-    def model_post_init(self, __context) -> None:  # type: ignore[override]
-        if self.neo4j_uri and self.neo4j_user and self.neo4j_password:
-            return
-
-        app_dir = Path(__file__).resolve().parents[1]
-        candidates = sorted(app_dir.glob("Neo4j-*.txt"))
-        if not candidates:
-            return
-
-        content = candidates[0].read_text(encoding="utf-8")
-        values: dict[str, str] = {}
-        for line in content.splitlines():
-            if "=" not in line:
-                continue
-            key, value = line.split("=", 1)
-            values[key.strip()] = value.strip()
-
-        object.__setattr__(self, "neo4j_uri", self.neo4j_uri or values.get("NEO4J_URI"))
-        object.__setattr__(
-            self,
-            "neo4j_user",
-            self.neo4j_user or values.get("NEO4J_USER") or values.get("NEO4J_USERNAME"),
-        )
-        object.__setattr__(self, "neo4j_password", self.neo4j_password or values.get("NEO4J_PASSWORD"))
-        object.__setattr__(self, "neo4j_database", self.neo4j_database or values.get("NEO4J_DATABASE"))
 
 
 settings = Settings()

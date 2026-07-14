@@ -1,3 +1,14 @@
+import os
+os.environ["HF_HUB_DISABLE_SSL_VERIFICATION"] = "1"
+os.environ["REQUESTS_CA_BUNDLE"] = ""
+os.environ["CURL_CA_BUNDLE"] = ""
+
+import ssl
+try:
+    ssl._create_default_https_context = ssl._create_unverified_context
+except AttributeError:
+    pass
+
 import logging
 from logging.config import dictConfig
 from pathlib import Path

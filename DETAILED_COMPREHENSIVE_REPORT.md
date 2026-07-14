@@ -20,6 +20,14 @@ Status Addendum: 2026-05-14
 - Notebook integration updated to read `backend_base_url` from a widget or environment variable and avoid accidental blank URL overrides.
 - Report below reflects the current integrated surface and the remaining work that is still open.
 
+Status Addendum: 2026-06-07
+
+- Databricks Integration Hardening: Completed the Databricks REST API Client supporting status checks, model training, evaluation, and scraping triggers. Exposed endpoints `/api/v1/ml/train-classifier`, `/api/v1/ml/training-status/{run_id}`, `/api/v1/ml/scrape`, and `/api/v1/ml/schedule-training`.
+- Notebook Restructuring: Fixed malformed cells in `databricks_cluster_job.ipynb` and created a sample PySpark scraping script `databricks_scraping_job.py` showing data extraction and ingestion.
+- Ingestion Resiliency: Resolved the Google News RSS constructor TypeError. Hardened GDELT and WorldBank connectors to gracefully handle partial timeouts and 404 missing files.
+- API Source Query Relaxation: Relaxed phase route endpoints (events, alerts, risk, risk-map, trends) to support querying all sources by default instead of being hardcoded to `newsapi`.
+- Ingestion S3 Check: Documented that Amazon S3 is not required for standard operations as data is saved directly to PostgreSQL.
+
 This document now includes an implementation reality-check against the repository state.
 
 ## 0. Implementation Snapshot (2026-04-27)

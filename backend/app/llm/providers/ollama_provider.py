@@ -2,72 +2,85 @@ from __future__ import annotations
 
 import re
 from typing import Any
-
+import logging
 import httpx
 
 from app.core.config import settings
 
-
-def _extract_text(payload: dict[str, Any]) -> str:
-    candidates = payload.get("candidates") or []
-    if not candidates:
-        return ""
-    content = candidates[0].get("content") or {}
-    parts = content.get("parts") or []
-    text = " ".join(str(part.get("text", "")) for part in parts if isinstance(part, dict))
-    return text.strip()
+logger = logging.getLogger(__name__)
 
 
 def _extract_confidence(text: str) -> float:
     match = re.search(r"(?im)^confidence\s*[:=]\s*(0(?:\.\d+)?|1(?:\.0+)?)\s*$", text)
     if match:
         return float(match.group(1))
-    return 0.82
+    return 0.85
 
 
 def _strip_confidence(text: str) -> str:
     return re.sub(r"(?im)^confidence\s*[:=]\s*(0(?:\.\d+)?|1(?:\.0+)?)\s*$", "", text).strip()
 
 
-class GeminiProvider:
+class OllamaProvider:
     def __init__(self) -> None:
-        if not settings.gemini_api_key:
-            raise RuntimeError("Gemini API key is not configured")
-        self.api_key = settings.gemini_api_key
-        self.model = settings.gemini_model
+        self.base_url = "http://localhost:11434"
         self.timeout = float(settings.llm_timeout_seconds)
+        self.model = self._select_model()
+
+    def _select_model(self) -> str:
+        # Check installed models on local Ollama
+        try:
+            with httpx.Client(timeout=3.0) as client:
+                response = client.get(f"{self.base_url}/api/tags")
+                if response.status_code == 200:
+                    models = response.json().get("models", [])
+                    names = [m.get("name") for m in models if m.get("name")]
+                    # Prefer phi3:mini or phi3 first, then llama3.2, llama, or anything not embed
+                    for name in ["phi3:mini", "phi3", "llama3.2:3b", "llama3.2", "llama3"]:
+                        matched = next((n for n in names if n.startswith(name) or name.startswith(n)), None)
+                        if matched:
+                            return matched
+                    # Fallback to the first model that isn't an embedding model
+                    non_embed = [n for n in names if "embed" not in n.lower()]
+                    if non_embed:
+                        return non_embed[0]
+                    if names:
+                        return names[0]
+        except Exception as e:
+            logger.warning("Failed to query Ollama models: %s", e)
+        return "phi3:mini"
 
     def _post(self, prompt: str, system_instruction: str) -> dict[str, Any]:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent"
-        payload: dict[str, Any] = {
-            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-            "generationConfig": {
+        url = f"{self.base_url}/api/generate"
+        payload = {
+            "model": self.model,
+            "prompt": prompt,
+            "system": system_instruction,
+            "stream": False,
+            "options": {
                 "temperature": 0.2,
-                "maxOutputTokens": settings.llm_max_output_tokens,
-            },
+                "num_predict": settings.llm_max_output_tokens
+            }
         }
-        if system_instruction:
-            payload["systemInstruction"] = {"parts": [{"text": system_instruction}]}
-
         with httpx.Client(timeout=self.timeout) as client:
-            response = client.post(url, params={"key": self.api_key}, json=payload)
+            response = client.post(url, json=payload)
             response.raise_for_status()
             return response.json()
 
     def _generate(self, task: str, prompt: str, system_instruction: str) -> dict[str, Any]:
-        payload = self._post(prompt, system_instruction)
-        text = _strip_confidence(_extract_text(payload))
-        token_count = None
-        usage = payload.get("usageMetadata") or {}
-        if isinstance(usage, dict):
-            token_count = usage.get("totalTokenCount") or usage.get("promptTokenCount")
-        return {
-            "summary": text or task,
-            "confidence": _extract_confidence(text),
-            "provider": "gemini",
-            "token_count": int(token_count) if token_count is not None else len(text.split()),
-            "raw_text": text,
-        }
+        try:
+            payload = self._post(prompt, system_instruction)
+            text = _strip_confidence(payload.get("response", ""))
+            return {
+                "summary": text or task,
+                "confidence": _extract_confidence(text),
+                "provider": f"ollama/{self.model}",
+                "token_count": len(text.split()),
+                "raw_text": text,
+            }
+        except Exception as e:
+            logger.error("Ollama LLM generation failed: %s", e)
+            raise RuntimeError(f"Ollama generation failed: {str(e)}") from e
 
     def generate_summary(self, text: str, context: dict[str, Any] | None = None) -> dict[str, Any]:
         prompt = (
