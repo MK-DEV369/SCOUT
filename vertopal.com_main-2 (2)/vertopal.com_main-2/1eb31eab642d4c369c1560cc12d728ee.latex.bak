@@ -1,0 +1,2376 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{lmodern}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\usepackage{longtable,booktabs,array}
+\usepackage{multirow}
+\usepackage{calc} % for calculating minipage widths
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same} % disable monospaced font for URLs
+\hypersetup{
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\author{}
+\date{}
+
+\begin{document}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 0\tabcolsep) * \real{1.0000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+\includegraphics[width=2.63889in,height=0.57083in]{vertopal_1eb31eab642d4c369c1560cc12d728ee/media/image1.png}
+\includegraphics[width=0.74583in,height=0.31389in]{vertopal_1eb31eab642d4c369c1560cc12d728ee/media/image2.png}
+\end{quote}
+
+\textbf{VI semester}
+
+\textbf{Experiential Learning Report on SDG - 9}
+
+\includegraphics[width=1.29583in,height=1.06389in]{vertopal_1eb31eab642d4c369c1560cc12d728ee/media/image3.png}
+
+\textbf{Design and Analysis of HVEOS}
+
+\textbf{Students}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\textbf{Sl. No}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+\textbf{USN}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+\textbf{Name}
+\end{minipage} \\
+\midrule()
+\endhead
+1 & 1RV23IS017 & Ankit Pathak \\
+2 & 1RV24AI406 & L Moryakantha \\
+3 & 1RV23AI091 & Shashank K \\
+4 & 1RV23IS015 & Anirudh C \\
+5 & 1RV23CS296 & Tulya Reddy \\
+\bottomrule()
+\end{longtable}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\textbf{Mentor}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+\textbf{Chief Mentor}
+\end{minipage} \\
+\midrule()
+\endhead
+\begin{minipage}[t]{\linewidth}\raggedright
+\begin{quote}
+\textbf{Prof. Rajatha}\\
+\emph{Assistant Professor}\\
+\emph{Department Name}
+\end{quote}\strut
+\end{minipage} & \begin{minipage}[t]{\linewidth}\raggedright
+\begin{quote}
+\textbf{Dr. K N Subramanya} \emph{Professor \& Principal}\\
+\emph{RVCE}
+\end{quote}\strut
+\end{minipage} \\
+\bottomrule()
+\end{longtable}
+
+Even 2025--26\strut
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+Experiential Learning 2025--26
+\end{quote}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+HVEOS Project Report
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 0\tabcolsep) * \real{1.0000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+\textbf{Contents}
+\end{quote}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1667}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1667}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1667}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1667}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1667}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1667}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\textbf{1}
+\end{minipage} &
+\multicolumn{4}{>{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.6667} + 6\tabcolsep}}{%
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+\textbf{Introduction}
+\end{quote}
+\end{minipage}} & \begin{minipage}[b]{\linewidth}\raggedright
+\textbf{4}
+\end{minipage} \\
+\midrule()
+\endhead
+\textbf{2} &
+\multicolumn{4}{>{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.6667} + 6\tabcolsep}}{%
+\begin{minipage}[t]{\linewidth}\raggedright
+\begin{quote}
+\textbf{Problem Definition}
+\end{quote}
+\end{minipage}} & \textbf{4} \\
+\multirow{3}{*}{\textbf{3}} & 2.1 &
+\multicolumn{3}{>{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.5000} + 4\tabcolsep}}{%
+Problem Statement . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . .} & 4 \\
+& 2.2 &
+\multicolumn{3}{>{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.5000} + 4\tabcolsep}}{%
+Background Information: Literature Review . . . . . . . . . . . . . . .
+.} & 5 \\
+&
+\multicolumn{4}{>{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.6667} + 6\tabcolsep}}{%
+\begin{minipage}[t]{\linewidth}\raggedright
+\begin{quote}
+\textbf{Objectives}
+\end{quote}
+\end{minipage}} & \textbf{7} \\
+\multirow{14}{*}{\textbf{4}} & 3.1 &
+\multicolumn{3}{>{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.5000} + 4\tabcolsep}}{%
+Primary Objectives . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . .} & 7 \\
+& 3.2 &
+\multicolumn{3}{>{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.5000} + 4\tabcolsep}}{%
+Secondary Objectives . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . .} & 8 \\
+&
+\multicolumn{4}{>{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.6667} + 6\tabcolsep}}{%
+\begin{minipage}[t]{\linewidth}\raggedright
+\begin{quote}
+\textbf{Methodology}
+\end{quote}
+\end{minipage}} & \textbf{8} \\
+& 4.1 &
+\multicolumn{3}{>{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.5000} + 4\tabcolsep}}{%
+Methodological Overview . . . . . . . . . . . . . . . . . . . . . . . .
+. . .} & 8 \\
+& 4.2 &
+\multicolumn{3}{>{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.5000} + 4\tabcolsep}}{%
+Stage 1: Heterogeneous Data Source Selection . . . . . . . . . . . . . .
+.} & 9 \\
+& 4.3 &
+\multicolumn{3}{>{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.5000} + 4\tabcolsep}}{%
+Stage 2: Continuous Connector Framework . . . . . . . . . . . . . . . .
+.} & 10 \\
+& 4.4 &
+\multicolumn{2}{>{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.3333} + 2\tabcolsep}}{%
+Stage 3: Deduplication and Provenance Preservation} & . . . . . . . . .
+. . & 11 \\
+& 4.5 &
+\multicolumn{3}{>{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.5000} + 4\tabcolsep}}{%
+Stage 4: Schema-Agnostic Normalisation . . . . . . . . . . . . . . . . .
+.} & 12 \\
+& 4.6 & Stage 5: NLP-Based Signal Extraction &
+\multicolumn{2}{>{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.3333} + 2\tabcolsep}}{%
+. . . . . . . . . . . . . . . . . . .} & 12 \\
+& 4.7 &
+\multicolumn{3}{>{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.5000} + 4\tabcolsep}}{%
+Stage 6: Classification of Supply-Chain Disruption Types . . . . . . . .
+.} & 14 \\
+& 4.8 &
+\multicolumn{3}{>{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.5000} + 4\tabcolsep}}{%
+Stage 7: Integration and Controlled Vocabulary Linking . . . . . . . . .
+.} & 14 \\
+& 4.9 &
+\multicolumn{3}{>{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.5000} + 4\tabcolsep}}{%
+Stage 8: Weighted Composite Risk Scoring . . . . . . . . . . . . . . . .
+.} & 15 \\
+&
+\multicolumn{4}{>{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.6667} + 6\tabcolsep}}{%
+4.10 Stage 9: Score Aggregation, Modulation, and Alert Mapping . . . . .
+. .} & 16 \\
+&
+\multicolumn{4}{>{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.6667} + 6\tabcolsep}}{%
+4.11 Validation Procedure . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . .} & 17 \\
+\bottomrule()
+\end{longtable}
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+1
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+Experiential Learning 2025--26
+\end{quote}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+HVEOS Project Report
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 0\tabcolsep) * \real{1.0000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+4.12 Expected Methodological Outcome . . . . . . . . . . . . . . . . . .
+. . . 18
+
+\textbf{5 Project Execution} \textbf{19}
+
+5.1 Planning and Design . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . 19
+
+5.2 Implementation . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . 19
+
+\textbf{6 Tools and Techniques Used} \textbf{20}
+
+6.1 Tools . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . . 20
+
+6.2 Techniques . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . 20
+
+\textbf{7 Results and Discussion} \textbf{21}
+
+7.1 Final Results . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . 21
+
+7.2 Discussion . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . 23
+
+\textbf{8 Prototype (Hardware/Software)} \textbf{24}
+
+8.1 Prototype Description . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . 24
+
+8.2 Development Process . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . 24
+
+8.3 Testing and Validation . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . 24
+
+\textbf{9 Conclusion} \textbf{25}
+
+9.1 Summary . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . 25
+
+9.2 Personal Reflection . . . . . . . . . . . . . . . . . . . . . . . .
+. . . . . . 25
+
+\textbf{10 Visuals} \textbf{25}
+
+\textbf{Code and Repository Reference} \textbf{28}
+\end{quote}
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+2
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+Experiential Learning 2025--26
+\end{quote}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+HVEOS Project Report
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 0\tabcolsep) * \real{1.0000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+\textbf{Bibliography} \textbf{28}
+
+\textbf{11 QR Code of Demonstration Video} \textbf{29}
+\end{quote}
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+3
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+Experiential Learning 2025--26
+\end{quote}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+HVEOS Project Report
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 0\tabcolsep) * \real{1.0000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+\textbf{1. Introduction}
+
+HVEOS is a Palantir-tier intelligence data operating system designed to
+connect live data ingestion, real-time state management, graph ontology,
+optimization, scenario sim-ulation, governance, and autonomous
+machine-learning retraining. The term ``operating system'' in this
+project refers to a data and intelligence operating system: a platform
+that coordinates many data services and AI modules into one integrated
+decision-support en-vironment.
+
+The project has evolved through fifteen phases, beginning with basic
+data pipeline func-tionality and progressing toward autonomous
+active-learning behavior. Its architecture uses containerized
+infrastructure services, a Python FastAPI backend, background in-gestion
+daemons, graph databases, caching layers, data-lake archival, and a
+React Flow visual interface for composing workflows.
+
+Modern intelligence platforms are built around the idea that raw data
+must be con-verted into operational knowledge. Data pipelines ingest and
+transform events, stream-processing systems route data at scale, graph
+databases represent relationships, caches support low-latency
+world-state queries, and machine-learning models infer risk or opti-mize
+action. HVEOS follows this design direction by integrating PostgreSQL,
+MQTT, Neo4j, Redis, Redpanda Kafka, Parquet archival, FastAPI, and React
+Flow.
+
+\textbf{2. Problem Definition}
+
+\textbf{2.1 Problem Statement}
+
+Organizations that operate in dynamic environments require systems that
+can ingest live events, preserve lineage, reason over relationships,
+optimize responses, and learn from
+\end{quote}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+feedback.
+\end{quote}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Traditional pipelines often stop after data cleaning or dashboarding.
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+The
+\end{quote}
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+\begin{quote}
+problem addressed by HVEOS is the lack of a unified platform that can
+convert raw telemetry into governed, graph-aware, and AI-assisted
+operational decisions.
+
+The project aims to design and document an integrated data operating
+system capable of ingesting live telemetry, transforming and
+deduplicating records, maintaining real-time and graph-based state,
+supporting AI-assisted optimization, enabling visual workflow execution,
+and autonomously improving prediction models through feedback.
+\end{quote}
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+4
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+Experiential Learning 2025--26
+\end{quote}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+HVEOS Project Report
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 0\tabcolsep) * \real{1.0000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+\textbf{2.2 Background Information: Literature Review}
+
+The literature related to HVEOS can be grouped into five major themes:
+disruption propagation, misinformation filtering, event identification
+from news, sentiment-based disruption detection, and sustainable
+inventory optimization. Together, these papers show that modern
+supply-chain risk systems require more than a conventional dash-board.
+They must combine external signal ingestion, natural-language
+processing, event classification, risk scoring, provenance tracking, and
+optimization. The following review discusses each paper in detail and
+identifies how its contribution influenced the design of HVEOS.
+
+Herold and Marzantowicz {[}1{]} study supply-chain responses to global
+disruptions and ripple effects from an institutional complexity
+perspective. Their work is important because it explains why disruptions
+do not remain isolated at the point where they begin. Instead, an event
+can move through suppliers, logistics providers, regulators, buyers, and
+financial stakeholders, creating a ripple effect across the wider
+network. The novelty of the paper is its strong theoretical lens: it
+shows that supply-chain disruption response is shaped by competing
+institutional logics, organizational pressures, and actor-specific
+interpretations of the same event. For HVEOS, this paper justifies the
+need for a graph-aware operating system rather than a simple list of
+alerts. If disruptions propagate through relationships, then the
+platform must represent entities, dependencies, and lineage paths in a
+graph database such as Neo4j. The main limitation of the paper is that
+it remains mostly conceptual. It explains how disruptions are
+interpreted and amplified, but it does not provide a deployable
+detection pipeline, real-time risk score, or alerting mechanism. HVEOS
+addresses this gap by converting disruption theory into an executable
+architecture with ingestion connectors, graph ontology mapping, Redis
+world-state caching, and automated risk computation.
+
+Akhtar et al. {[}2{]} focus on detecting fake news and disinformation
+using artificial intel-ligence and machine-learning methods to avoid
+supply-chain disruptions. This paper is directly relevant because
+supply-chain intelligence increasingly depends on open-source
+information such as news articles, social media posts, market reports,
+and public event feeds. False or misleading reports can trigger wrong
+procurement decisions, unnecessary rerouting, panic buying, or delayed
+response to genuine disruption. The novelty of the work is its
+demonstration that AI and ML can filter misinformation from multiple
+data sources before those signals influence operational decisions. For
+HVEOS, this supports the inclusion of validation, deduplication,
+provenance, and confidence scoring in the in-gestion layer. A record
+should not be treated as decision-ready merely because it was
+\end{quote}
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+5
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+Experiential Learning 2025--26
+\end{quote}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+HVEOS Project Report
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 0\tabcolsep) * \real{1.0000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+fetched from an external API; it must be checked for source identity,
+duplicate content, suspicious wording, and consistency with other
+signals. However, the research gap is that the paper concentrates mainly
+on misinformation detection and does not fully solve multi-source event
+fusion, supplier-specific personalization, or downstream disruption
+scoring. HVEOS extends this idea by placing misinformation filtering
+inside a broader pipeline where cleaned records are normalized, linked
+to entities, stored with lineage, and con-verted into risk tiers.
+
+Shahsavari, Hussain, Saberi, and Sharma {[}3{]} introduce a
+large-language-model-based ap-proach for event identification in
+supply-chain risk management using news analysis. Their LUEI/CERIA
+approach is valuable because it can extract event names and con-tributor
+phrases from news text and use them to identify contributing events.
+This is closely aligned with the early-warning use case of HVEOS, where
+unstructured news reports must be transformed into structured
+operational intelligence. The paper's nov-elty lies in using language
+models to move beyond keyword search. Instead of only matching fixed
+disruption terms, the method can identify phrases that describe causes,
+locations, actors, and risk-relevant developments. In HVEOS, this idea
+maps to the NLP entity-extraction and signal-classification stages,
+where raw articles from sources such as NewsAPI and GDELT are converted
+into event records. The limitation is that the approach is still
+centered on news-based event identification. It does not fully address
+broader supplier-network mapping, quantitative risk ranking, or
+optimization recommen-dations. HVEOS therefore uses the paper as a
+foundation for event extraction but adds graph relationships, weighted
+risk scoring, and decision-support workflows.
+
+Vishnuthilak et al. {[}4{]} propose the use of sentiment analysis to
+detect disruptive events in supply chains. Their framework classifies
+events by risk type, geography, frequency, and sentiment, and then
+transfers learning from news headlines to identify disruptive relevance.
+This paper is useful because disruption signals often appear first as
+language patterns rather than structured records. Negative sentiment
+around a port, supplier, commodity, or region may indicate a developing
+risk before formal data sources confirm it. The novelty of the paper is
+its combination of sentiment features with risk categorization, which
+helps prioritize large volumes of text-based signals. For HVEOS, this
+supports the design of a weighted composite risk engine in which textual
+sentiment can be one input among several others, including event
+frequency, source reliability, entity importance, geographic severity,
+and market indicators. The research gap is that sentiment analysis alone
+usually remains at the headline or article level. It does not deeply
+model supplier dependency, multi-tier propagation, or structured event
+knowledge. HVEOS addresses this by linking sentiment-enriched records to
+suppliers, regions, commodities, and graph nodes before generating final
+alert tiers.
+\end{quote}
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+6
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+Experiential Learning 2025--26
+\end{quote}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+HVEOS Project Report
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 0\tabcolsep) * \real{1.0000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+Aiello et al. {[}5{]} develop a sustainable inventory-management model
+for a closed-loop sup-ply chain involving waste reduction and treatment.
+Although this paper is more focused on inventory and sustainability than
+on real-time disruption monitoring, it is important for HVEOS because it
+shows how supply-chain intelligence should ultimately support
+operational optimization. The model extends the classical newsvendor and
+inventory-control setting into a closed-loop circular-economy context
+using the 4R concept and waste-treatment logic. Its novelty is the
+integration of sustainability objectives into in-ventory
+decision-making, showing that supply-chain optimization should consider
+not only cost and service level but also reuse, recovery, recycling, and
+waste reduction. For HVEOS, this paper informs the optimization and
+scenario-simulation layers. Once the platform detects risk, it should
+support decisions such as rerouting, reallocating inven-tory, reducing
+waste, or selecting more sustainable response options. The limitation is
+that the paper is not primarily about multi-source disruption monitoring
+or supplier-risk prediction. HVEOS fills that gap by connecting upstream
+intelligence detection with downstream optimization, allowing risk
+signals to influence operational recommen-dations.
+
+Overall, the reviewed literature shows that no single paper fully solves
+the complete problem addressed by HVEOS. Herold and Marzantowicz explain
+disruption propagation but do not build a real-time system. Akhtar et
+al. address misinformation but not full event fusion and response
+optimization. Shahsavari et al. extract supply-chain events from news
+but do not cover graph-based dependency modeling. Vishnuthilak et al.
+add sentiment-based risk detection but do not fully represent multi-tier
+propagation. Aiello et al. provide an optimization-oriented
+sustainability model but not a live intelligence HVEOS combines the
+strengths of these works by designing an integrated pipeline.
+
+data operating system for ingestion, deduplication, provenance, NLP
+extraction, graph ontology, risk scoring, scenario simulation,
+governance, and active learning.
+
+\textbf{3. Objectives}
+
+\textbf{3.1 Primary Objectives}
+
+1. To analyze the multi-layer infrastructure and application
+architecture of HVEOS.
+
+2. To document the fifteen functional phases from ingestion pipelines to
+autonomous active learning.
+\end{quote}
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+7
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+Experiential Learning 2025--26
+\end{quote}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+HVEOS Project Report
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 0\tabcolsep) * \real{1.0000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+3. To present the startup, verification, governance, and evaluation
+workflow for the complete platform.
+
+4. To demonstrate how live telemetry can be transformed into graph-aware
+operational intelligence.
+
+\textbf{3.2 Secondary Objectives}
+
+1. To study how PostgreSQL, MQTT, Neo4j, Redis, Redpanda, Parquet,
+FastAPI, and React Flow interact in one system.
+
+2. To understand lineage, governance stamping, scenario simulation, and
+feedback- driven model retraining.
+
+3. To identify future improvements such as monitoring dashboards,
+role-based access control, and formal benchmarking.
+
+\textbf{4. Methodology}
+
+\textbf{4.1 Methodological Overview}
+
+The methodology adopted for HVEOS follows a layered
+data-operating-system model in which heterogeneous external information
+is first ingested, then converted into a common canonical
+representation, then enriched through natural-language and
+vocabulary-linking modules, and finally converted into operational risk
+scores and alerts. The three method-ology diagrams used for this section
+represent the major stages of this pipeline. Figure 1 describes the
+multi-source heterogeneous ingestion and schema-agnostic normalisation
+layer. Figure 2 describes the NLP-driven supply-chain signal extraction
+and classifica-tion pipeline. Figure 3 describes the weighted composite
+risk scoring engine that converts enriched records into actionable alert
+tiers.
+
+The overall method is therefore not limited to one data-processing
+script. It is a complete workflow that starts with raw signals from
+external data sources and ends with structured, queryable, and
+prioritized intelligence records. This is suitable for an intelligence
+data operating system because such systems must handle incomplete,
+noisy, delayed, dupli-cated, and differently formatted data. The
+methodology deliberately separates ingestion,
+\end{quote}
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+8
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+Experiential Learning 2025--26
+\end{quote}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+HVEOS Project Report
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 0\tabcolsep) * \real{1.0000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\includegraphics[width=5.95417in,height=3.48611in]{vertopal_1eb31eab642d4c369c1560cc12d728ee/media/image4.png}
+
+\begin{quote}
+Figure 1: Multi-source heterogeneous data ingestion layer with
+schema-agnostic normal-isation
+
+normalisation, enrichment, classification, risk scoring, and alerting so
+that each stage can be validated independently and improved without
+disturbing the full system.
+
+The proposed pipeline can be summarized as follows:
+\end{quote}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 0\tabcolsep) * \real{1.0000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+External Sources \emph{→}Connector Framework \emph{→}Deduplication and
+Provenance \emph{→}Schema-Agnostic Normalisation \emph{→}NLP Entity
+Extraction \emph{→}Signal Classifi-cation \emph{→}Vocabulary Linking
+\emph{→}Gold-Tier Event Records \emph{→}Composite Risk
+\end{quote}
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+\begin{quote}
+Scoring \emph{→}Alert Delivery
+
+This methodology supports the objective of HVEOS because it converts
+free-form oper-ational data into governed, structured, and
+decision-ready information. The design also supports traceability. At
+every major step, records preserve source identity, timestamps, hashes,
+provenance metadata, and processing outputs. This is important because
+oper-ational intelligence is valuable only when its origin and
+transformation history can be inspected.
+
+\textbf{4.2 Stage 1: Heterogeneous Data Source Selection}
+
+The first methodological stage is the selection of heterogeneous
+sources. The ingestion layer is designed around six representative
+external sources: GDELT event streams, News-
+\end{quote}
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+9
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+Experiential Learning 2025--26
+\end{quote}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+HVEOS Project Report
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 0\tabcolsep) * \real{1.0000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+API article feeds, Freightos Baltic freight indices, World Bank
+commodity price series, ACLED conflict registers, and FRED macroeconomic
+indicators. These sources were se-lected because they represent
+different classes of real-world data. Some are event streams, some are
+article feeds, some are index values, some are commodity time series,
+some are conflict records, and some are macroeconomic indicators. This
+diversity is essential for testing whether the platform can operate
+beyond a single fixed schema.
+
+The use of heterogeneous sources also reflects the real nature of
+supply-chain and operational-risk analysis. A disruption signal may
+appear first as a news article, later as a conflict event, then as a
+freight-rate change, and finally as a macroeconomic indicator. A
+method-ology that uses only one source type would fail to capture these
+cross-domain relation-ships. HVEOS therefore treats source diversity as
+a core design requirement rather than as an optional extension.
+
+Each source contributes a different kind of evidence. GDELT and NewsAPI
+provide text-heavy, fast-moving reports about geopolitical, economic,
+and logistics events. Freightos Baltic data provides freight-market
+indicators that can reveal stress in shipping routes. World Bank
+commodity information provides material-price context. ACLED contributes
+structured conflict and political-violence evidence. FRED contributes
+macroeconomic background signals such as inflation, interest-rate,
+employment, and production indica-tors. Together, these sources create a
+multi-dimensional view of operational risk.
+
+\textbf{4.3 Stage 2: Continuous Connector Framework}
+
+After source selection, the next stage is continuous ingestion through a
+connector frame-work. The framework performs source-specific
+authentication, rate-limit-aware polling, and SHA-256 content hashing.
+Source-specific authentication is necessary because each external
+service can use a different access mechanism. Some sources may require
+API keys, some may use public endpoints, and some may impose
+query-specific limits. The connector layer hides these differences
+behind a common ingestion interface.
+
+Rate-limit-aware polling is used to make the ingestion system reliable
+and respectful of external service limits. Instead of repeatedly calling
+APIs without control, HVEOS schedules polling based on each source's
+update frequency and allowed request rate. This prevents accidental API
+blocking and also reduces unnecessary backend load. A scheduler-based
+approach makes the ingestion process more predictable because each
+connector can be configured according to its data velocity and
+importance.
+\end{quote}
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+10
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+Experiential Learning 2025--26
+\end{quote}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+HVEOS Project Report
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 0\tabcolsep) * \real{1.0000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+The third function of the connector framework is SHA-256 content
+hashing. Every fetched record is converted into a stable hash based on
+its meaningful content. This hash acts as a compact fingerprint of the
+record. If the same article, event, or data point appears again, the
+system can detect it without comparing every field manually. Hashing
+also supports provenance because a stored record can later be linked to
+the exact content that entered the system.
+
+The connector framework is designed to operate continuously. This means
+ingestion is not treated as a one-time file upload but as a background
+operational process. As new events appear, they move through the same
+validation, deduplication, and normalisation stages. This continuous
+design is important for HVEOS because the platform aims to support
+real-time and near-real-time decision support.
+
+\textbf{4.4 Stage 3: Deduplication and Provenance Preservation}
+
+The next stage is the deduplication and provenance layer. Once a
+connector retrieves a record and computes its hash, the system performs
+a deduplication check. If the hash already exists, the record can be
+ignored, updated, or linked as a repeated observation depending on the
+use case. If it is a new record, it is persisted as an append-only raw
+record in PostgreSQL.
+
+The append-only approach is methodologically important. Instead of
+overwriting pre-vious records, the system preserves the raw incoming
+version. This ensures that later transformations can be audited. If an
+NLP model produces an incorrect classification, the original input is
+still available for review and reprocessing. Similarly, if a source
+corrects a previous entry, both versions can be retained with timestamps
+and provenance information.
+
+Provenance preservation includes storing the source name, ingestion
+timestamp, source URL or endpoint metadata where available, content
+hash, raw payload, and processing status. These fields allow the system
+to answer questions such as where a record came from, when it was
+collected, whether it was duplicated, and which downstream processes
+used it. This is especially important in a research setting because
+results must be repro-ducible and explainable.
+
+In HVEOS, deduplication also improves the quality of later NLP and
+risk-scoring out-puts. Without deduplication, the same article or event
+could be counted multiple times, inflating risk scores. By removing or
+linking duplicates before scoring, the system reduces
+\end{quote}
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+11
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+Experiential Learning 2025--26
+\end{quote}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+HVEOS Project Report
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 0\tabcolsep) * \real{1.0000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+false escalation and keeps alert generation more meaningful.
+
+\textbf{4.5 Stage 4: Schema-Agnostic Normalisation}
+
+Raw source records rarely share the same schema. For example, a GDELT
+event may contain event codes, actor fields, locations, and tone values.
+A NewsAPI article may contain a headline, author, description, URL, and
+publication time. A freight index may contain route, price, and date
+fields. A commodity price record may contain commodity name, unit,
+price, and reporting period. A conflict register may contain actor,
+event type, latitude, longitude, and fatalities. A macroeconomic
+indicator may contain series code, value, date, and country.
+
+The schema-agnostic normalisation stage solves this problem by
+converting every raw record into a bronze-tier canonical payload. The
+canonical payload contains a stable set of top-level fields such as
+source, timestamp, hash, payload, and provenance. The detailed original
+data is retained inside the payload field, while standard metadata is
+exposed consistently for downstream modules. This gives the system both
+flexibility and structure: it does not lose the original schema, but it
+still provides a common wrapper for processing.
+
+This stage is called schema-agnostic because it does not assume that
+every source has the same columns. Instead, it accepts structured,
+semi-structured, and unstructured data and maps them into a shared
+representation. This enables the same backend pipeline to process event
+streams, text articles, numerical indicators, and registry records.
+
+Normalisation also establishes the bronze-tier layer of the data
+lifecycle. The bronze tier contains raw or lightly processed canonical
+records. Later stages can produce silver-tier enriched records and
+gold-tier decision records. This tiered methodology makes the data
+lifecycle easier to reason about. Bronze records preserve source truth,
+enriched records add extracted meaning, and gold records represent
+validated intelligence outputs.
+
+\textbf{4.6 Stage 5: NLP-Based Signal Extraction}
+
+After normalisation, unstructured and semi-structured text records move
+into the NLP-driven signal extraction pipeline shown in Figure 2. This
+stage focuses mainly on news text and article-like records because these
+sources contain valuable operational signals in natural language. The
+goal is to convert free-form text into structured annotations that
+\end{quote}
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+12
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+Experiential Learning 2025--26
+\end{quote}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+HVEOS Project Report
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 0\tabcolsep) * \real{1.0000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\includegraphics[width=5.95417in,height=3.48611in]{vertopal_1eb31eab642d4c369c1560cc12d728ee/media/image5.png}
+
+Figure 2: NLP-driven supply-chain signal extraction and classification
+pipeline
+
+\begin{quote}
+downstream systems can query.
+
+The first NLP queue performs named entity recognition using a fine-tuned
+spaCy trans-former pipeline. Named entity recognition identifies
+important entities such as organi-zations, geopolitical locations,
+commodities, and events. For example, an article about port congestion
+may mention a country, a port, a shipping company, and a commodity.
+These mentions are not useful to a database unless they are extracted
+into fields. NER therefore acts as a bridge between natural language and
+structured intelligence.
+
+The NER stage produces text with entity annotations. These annotations
+become part of the enriched record. The methodology uses a queue-based
+design because NLP inference can be computationally heavier than simple
+ingestion. By assigning NER to its own queue, the system can scale
+workers independently. If the number of incoming articles increases,
+additional NER workers can be started without changing the connector or
+scoring logic.
+
+This queue-based architecture also supports fault isolation. If the NER
+model fails on a malformed article, the rest of the ingestion pipeline
+can continue. Failed records can be marked for retry or manual
+inspection. This improves robustness compared with a single monolithic
+pipeline where one error could stop all processing.
+\end{quote}
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+13
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+Experiential Learning 2025--26
+\end{quote}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+HVEOS Project Report
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 0\tabcolsep) * \real{1.0000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+\textbf{4.7 Stage 6: Classification of Supply-Chain Disruption Types}
+
+The second NLP queue performs classification inference using a
+fine-tuned DistilBERT sequence classifier. The classifier receives
+article text and categorizes it into disruption types such as strike,
+flood/weather, tariff/trade, shortage, geopolitical, logistics,
+financial, or other. This classification step is important because a
+risk platform must know not only that an article exists, but also what
+kind of operational problem it describes.
+
+DistilBERT is suitable for this role because it can represent
+sentence-level meaning while remaining lighter than larger transformer
+models. In the HVEOS methodology, the classifier output becomes an
+article category or disruption label. This label is later used by the
+risk-scoring engine as one of the signal components. For example, a
+strike near a port may receive a different operational interpretation
+from a general financial report or a weather event.
+
+Classification also improves dashboard filtering and user
+interpretation. Operators can filter records by disruption type and
+focus on the categories relevant to their workflow. A logistics team may
+focus on port and route disruptions, while a procurement team may focus
+on commodity shortages and price shocks. By generating consistent
+categories, the system turns scattered articles into organized
+intelligence.
+
+The queue-based classification design again allows independent scaling.
+Text classification workers can be increased during high news volume,
+while NER workers and risk-scoring workers can scale according to their
+own workloads. This supports the data-operating-system goal of modular,
+independently scalable services.
+
+\textbf{4.8 Stage 7: Integration and Controlled Vocabulary Linking}
+
+After entity extraction and classification, the methodology links
+extracted entities to controlled vocabularies. The diagram identifies
+three important vocabulary families: ge-ographic scope, ports, and
+materials. Geographic scope is linked through ISO 3166-1 country codes.
+Ports are linked through UN/LOCODE port codes. Materials are linked
+through a commodity taxonomy such as the World Bank commodity taxonomy.
+
+Vocabulary linking solves a major practical problem: the same entity can
+appear in many forms. For example, a country may be written as ``United
+States,'' ``USA,'' or ``U.S.'' A port may be referred to by its full
+name, local spelling, or abbreviation. A material may appear under a
+commercial name or a broader commodity category. Without controlled
+\end{quote}
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+14
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+Experiential Learning 2025--26
+\end{quote}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+HVEOS Project Report
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 0\tabcolsep) * \real{1.0000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+vocabularies, the graph layer and risk engine would treat these
+variations as different entities.
+
+By linking entities to standardized identifiers, HVEOS creates
+consistent records that can be queried reliably. A user can search for
+all records connected to a country code, port code, or commodity group
+even if the original articles used different wording. This makes the
+system more useful for research and operational analysis because it
+reduces ambiguity.
+
+The output of this stage is a gold-tier event record. A gold-tier record
+contains the record ID, article category, extracted entities with linked
+codes, risk score, and provenance metadata. It is called gold-tier
+because it is no longer just raw data; it is enriched, structured, and
+ready for querying, dashboarding, graph mapping, and decision support.
+\end{quote}
+
+\includegraphics[width=5.95417in,height=3.37639in]{vertopal_1eb31eab642d4c369c1560cc12d728ee/media/image6.png}
+
+Figure 3: Weighted composite risk scoring engine
+
+\begin{quote}
+\textbf{4.9 Stage 8: Weighted Composite Risk Scoring}
+
+The final analytical stage is the weighted composite risk scoring engine
+shown in Figure 3. This stage converts enriched gold-tier records into
+operational risk scores. The scoring methodology is based on multiple
+signal components rather than a single binary rule. This is important
+because real-world risk is rarely determined by one factor. A highly
+relevant event from a weak source may not deserve the same priority as a
+corroborated event from a credible source affecting a critical supplier.
+\end{quote}
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+15
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+Experiential Learning 2025--26
+\end{quote}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+HVEOS Project Report
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 0\tabcolsep) * \real{1.0000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+The first component is event severity. Severity can be estimated from
+event type, sen-timent, entity density, source tier, and corroboration.
+A violent conflict event, a port closure, or a major shortage would
+normally receive a higher severity value than a rou-tine market update.
+Sentiment can indicate whether the language is negative or urgent.
+Entity density can indicate whether the article contains many relevant
+operational en-tities. Corroboration can increase severity confidence if
+multiple independent sources report similar facts.
+
+The second component is exponential recency decay. Operational
+intelligence loses value as it becomes older. A disruption reported
+today is usually more actionable than a similar report from several
+weeks ago. The methodology therefore applies a configurable half-life so
+that older events gradually contribute less to the current score unless
+corroboration or continuing updates keep them relevant.
+
+The third component is source credibility. Different sources can have
+different reliability levels. A registered conflict database, official
+macroeconomic series, or verified market index may be scored differently
+from a general article feed. Source credibility prevents the system from
+treating all records as equally trustworthy.
+
+The fourth component is supplier relevance. This is calculated through
+similarity between the extracted event context and the supplier,
+geography, or commodity profile. The diagram represents this through
+TF-IDF cosine similarity with geographic and commodity weighting. A
+disruption is more important when it is connected to a supplier's
+region, material, port, or route. For example, a flood in an unrelated
+region may be a low priority, while the same flood near a critical
+supplier's logistics corridor may be high priority.
+
+The fifth component is supplier criticality. Criticality applies
+multipliers to reflect busi-ness importance. A sole-source supplier may
+receive a multiplier such as 1.5 because disruption to that supplier has
+a larger impact. A replaceable supplier may receive a smaller multiplier
+such as 0.7 because alternatives are available. This makes the score
+operationally meaningful rather than purely textual.
+\end{quote}
+
+\textbf{4.10 Stage 9: Score Aggregation, Modulation, and Alert Map-}
+
+\begin{quote}
+\textbf{ping}
+
+After computing the signal components, the system applies configurable
+weights and crit-icality modulators. The weighted sum combines severity,
+recency, credibility, relevance, and criticality into a composite score.
+The advantage of a weighted method is trans-
+\end{quote}
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+16
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+Experiential Learning 2025--26
+\end{quote}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+HVEOS Project Report
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 0\tabcolsep) * \real{1.0000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+parency: each input can be inspected, tuned, and justified. If the
+system produces an unexpected alert, the user can review whether the
+cause was high severity, high supplier criticality, strong relevance, or
+recent timing.
+
+The composite score is then mapped into alert tiers. Scores greater than
+or equal to 0.80 become critical alerts. Scores from 0.60 to 0.79 become
+high alerts. Scores from 0.40 to 0.59 become medium alerts. Scores below
+0.40 become low alerts. These thresholds make the output understandable
+to operators. Instead of showing only a numerical value, the system
+converts the score into a priority category.
+
+The alert tiers also support different delivery behavior. Critical
+alerts may require im-mediate notification and red dashboard
+presentation. High alerts may require escalated priority and orange
+dashboard presentation. Medium alerts may update a regular dash-board.
+Low alerts may be stored as background context. This prevents alert
+fatigue by ensuring that only the most important records interrupt users
+immediately.
+
+The methodology includes dashboard presentation and notification
+delivery as final de-livery behavior. Dashboard presentation supports
+sorting, priority filtering, and visual monitoring. Notification
+delivery can support email, SMS, or custom thresholds. This closes the
+loop from raw data to user action: external signals enter the platform,
+be-come structured records, receive risk scores, and are finally
+delivered to the appropriate interface.
+
+\textbf{4.11 Validation Procedure}
+
+The project work was organized as a progressive validation process
+across the above stages. First, the infrastructure services were studied
+and started using Docker Compose. Next, backend APIs and worker daemons
+were analyzed for ingestion, transformation, graph mapping, and
+archival. The ingestion layer was validated by checking whether raw
+records from different source types could be represented using the same
+canonical wrap-per. The deduplication layer was validated by ensuring
+that repeated records produced the same SHA-256 hash and did not inflate
+downstream counts.
+
+The NLP layer was validated by checking whether article text could
+produce named en-tities and disruption categories. The
+vocabulary-linking layer was validated by verifying that extracted
+countries, ports, and commodities could be mapped to controlled
+identi-fiers. The gold-tier event-record layer was validated by
+inspecting whether each output contained a record ID, article category,
+extracted entities, linked metadata, risk score,
+\end{quote}
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+17
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+Experiential Learning 2025--26
+\end{quote}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+HVEOS Project Report
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 0\tabcolsep) * \real{1.0000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+and provenance fields.
+
+The risk-scoring layer was validated by checking whether changes in
+severity, recency, credibility, relevance, and criticality changed the
+final score in the expected direction. For example, a recent event from
+a credible source affecting a sole-source supplier should score higher
+than an old, weakly relevant article affecting a replaceable supplier.
+Alert mapping was validated by confirming that scores crossed the
+intended thresholds for low, medium, high, and critical categories.
+
+Finally, the complete methodology was mapped back to the HVEOS data
+operating-system architecture. PostgreSQL supports raw and transformed
+records, Neo4j supports graph ontology and relationship reasoning, Redis
+supports low-latency state, Parquet supports archival, FastAPI exposes
+the processing services, and the React Flow frontend provides a visual
+operator interface. This validates that the methodology is not only
+theoretical, but also aligned with the actual platform structure.
+
+\textbf{4.12 Expected Methodological Outcome}
+
+The expected outcome of this methodology is a repeatable pipeline that
+transforms het-erogeneous external data into structured operational
+intelligence. At the beginning of the pipeline, records may be noisy,
+duplicated, unstructured, and inconsistent. At the end of the pipeline,
+they should be deduplicated, provenance-stamped, normalized, enriched
+with NLP annotations, linked to controlled vocabularies, scored for
+risk, and delivered through alert tiers.
+
+This method is appropriate for HVEOS because it emphasizes modularity,
+explainability, and scalability. Modularity is achieved by separating
+connectors, NLP queues, vocabulary linking, scoring, and delivery.
+Explainability is achieved by preserving provenance and us-ing
+transparent scoring components. Scalability is achieved by using
+independent worker queues and service-oriented backend components.
+Together, these qualities support the development of a Palantir-tier
+intelligence data operating system capable of converting live
+information streams into graph-aware, governed, and AI-assisted
+decisions.
+\end{quote}
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+18
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+Experiential Learning 2025--26
+\end{quote}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+HVEOS Project Report
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 0\tabcolsep) * \real{1.0000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+\textbf{5. Project Execution}
+
+\textbf{5.1 Planning and Design}
+
+HVEOS is designed as a layered distributed platform. The infrastructure
+layer provides PostgreSQL, Neo4j, Redis, Eclipse Mosquitto, Redpanda
+Kafka, and Parquet storage. The backend layer exposes FastAPI endpoints
+and background workers. The intelligence layer handles Kalman filtering,
+OR-Tools optimization, graph AI, scenario simulation, cryptographic
+governance, and active learning. The frontend layer gives operators a
+visual workflow builder.
+
+The major design constraint is that all services must be reachable for
+end-to-end valida-tion. The system requires Docker, Docker Compose,
+Python 3.10 or above, and Node.js 18 or above. Backend infrastructure
+must be started before the FastAPI server and frontend UI. Live
+ingestion also depends on the availability of source systems such as
+OpenSky Flight Radar.
+
+\textbf{5.2 Implementation}
+
+The infrastructure stack is started from the backend directory using
+Docker Compose:
+
+cd backend\\
+docker-compose up -d
+
+This boots core services such as PostgreSQL, Neo4j, Redis, Mosquitto,
+and Redpanda depending on the configured stack.
+
+The backend is implemented with FastAPI and is started with Uvicorn on
+port 8000:
+
+cd backend\\
+uvicorn app.main:app -\/-reload -\/-port 8000
+
+The backend acts as the unified API for connectors, graph manipulation,
+optimization engines, workflow interpretation, feedback collection, and
+active learning.
+\end{quote}\strut
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+19
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+Experiential Learning 2025--26
+\end{quote}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+HVEOS Project Report
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 0\tabcolsep) * \real{1.0000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+The frontend uses React Flow to provide a visual workflow canvas.
+Operators can drag and drop pipeline triggers, AI predictors,
+optimization engines, and action nodes into an execution graph. The
+development server is started from the frontend directory:
+
+cd frontend\\
+npm run dev -\/- -\/-force
+
+\textbf{6. Tools and Techniques Used}
+
+\textbf{6.1 Tools}
+\end{quote}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+\textbf{Tool}
+\end{quote}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+\textbf{Purpose}
+\end{quote}
+\end{minipage} \\
+\midrule()
+\endhead
+\begin{minipage}[t]{\linewidth}\raggedright
+\begin{quote}
+Docker and Docker Com-pose\\
+PostgreSQL
+\end{quote}\strut
+\end{minipage} & \begin{minipage}[t]{\linewidth}\raggedright
+\begin{quote}
+Start and coordinate the infrastructure services re-quired by the
+platform.
+\end{quote}
+
+Store raw structured ingestion records and transformed
+\end{minipage} \\
+\bottomrule()
+\end{longtable}
+
+data.
+
+\begin{quote}
+Eclipse Mosquitto Support MQTT-based IoT and telemetry streaming.
+Redpanda Kafka Provide Kafka-compatible topic routing for stream-
+processing workflows.
+
+Neo4j Store graph ontology, entity relationships, and lineage paths.
+
+Redis Maintain low-latency real-time world-state cache val- ues.
+
+PyArrow Parquet Write immutable analytical archives in partitioned
+data-lake format.
+
+Expose backend APIs and serve intelligence modules. FastAPI and
+Uvicorn\\
+React Flow Provide a visual workflow interface for operator-defined
+execution graphs.
+
+\textbf{6.2 Techniques}
+
+The main techniques include streaming ingestion, data transformation,
+deduplication, graph ontology mapping, lineage generation, Kalman
+filtering, constraint optimization, webhook action generation, human
+feedback processing, Redis synchronization, scenario
+\end{quote}\strut
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+20
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+Experiential Learning 2025--26
+\end{quote}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+HVEOS Project Report
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 0\tabcolsep) * \real{1.0000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+simulation, graph-based risk prediction, visual workflow interpretation,
+SHA-256 gover-nance stamping, and autonomous active-learning model
+replacement.
+
+\textbf{7. Results and Discussion}
+
+\textbf{7.1 Final Results}
+
+A successful run should show infrastructure containers running, the
+FastAPI server lis-tening on port 8000, background consumers active,
+OpenSky records entering the inges-tion pipeline, Parquet files
+appearing in partitioned data-lake folders, Redis storing fast
+world-state updates, and Neo4j displaying DataRecord lineage nodes. The
+final evalua-tion from the project paper also shows that HVEOS improves
+over a traditional static ETL baseline by using a visual DAG execution
+model, background offloading, and graph-aware risk propagation. The
+system was evaluated on Docker-based ARM64 nodes and demonstrated
+high-throughput ingestion, low-latency updates, rapid logic
+reconfigura-tion, improved AI linking accuracy, and faster graph
+traversal.
+\end{quote}
+
+Table 2: Performance benchmarks from final project evaluation
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.2500}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.2500}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.2500}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.2500}}@{}}
+\toprule()
+\multirow{2}{*}{\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+\textbf{Metric}
+\end{quote}
+\end{minipage}} & \begin{minipage}[b]{\linewidth}\raggedright
+\textbf{Static ETL base-}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+\textbf{HVEOS}
+\end{quote}
+\end{minipage} &
+\multirow{2}{*}{\begin{minipage}[b]{\linewidth}\raggedright
+\textbf{DAG}
+\end{minipage}} \\
+& \begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+\textbf{line}
+\end{quote}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+\textbf{model}
+\end{quote}
+\end{minipage} \\
+\midrule()
+\endhead
+\begin{minipage}[t]{\linewidth}\raggedright
+\begin{quote}
+Maximum throughput
+\end{quote}
+\end{minipage} & \begin{minipage}[t]{\linewidth}\raggedright
+\begin{quote}
+2.1k events/s
+\end{quote}
+\end{minipage} & \begin{minipage}[t]{\linewidth}\raggedright
+\begin{quote}
+10.4k events/s
+\end{quote}
+\end{minipage} & \multirow{5}{*}{} \\
+\begin{minipage}[t]{\linewidth}\raggedright
+\begin{quote}
+Mean ingestion latency
+\end{quote}
+\end{minipage} & \begin{minipage}[t]{\linewidth}\raggedright
+\begin{quote}
+350 ms
+\end{quote}
+\end{minipage} & \begin{minipage}[t]{\linewidth}\raggedright
+\begin{quote}
+85 ms
+\end{quote}
+\end{minipage} \\
+\begin{minipage}[t]{\linewidth}\raggedright
+\begin{quote}
+Logic reconfiguration time
+\end{quote}
+\end{minipage} & 1200 s redeployment &
+\begin{minipage}[t]{\linewidth}\raggedright
+\begin{quote}
+0.5 s hot-swap
+\end{quote}
+\end{minipage} \\
+\begin{minipage}[t]{\linewidth}\raggedright
+\begin{quote}
+AI linking accuracy
+\end{quote}
+\end{minipage} & \begin{minipage}[t]{\linewidth}\raggedright
+\begin{quote}
+68\%
+\end{quote}
+\end{minipage} & \begin{minipage}[t]{\linewidth}\raggedright
+\begin{quote}
+91\%
+\end{quote}
+\end{minipage} \\
+Graph traversal speed at depth &
+\begin{minipage}[t]{\linewidth}\raggedright
+\begin{quote}
+3.2 s
+\end{quote}
+\end{minipage} & \begin{minipage}[t]{\linewidth}\raggedright
+\begin{quote}
+0.15 s
+\end{quote}
+\end{minipage} \\
+\bottomrule()
+\end{longtable}
+
+\begin{quote}
+4
+
+The benchmarking confirms that the DAG-based architecture is suitable
+for high-velocity intelligence synthesis. Compared with a static
+pipeline, HVEOS supports faster configu-ration changes because logic can
+be adjusted through workflow nodes instead of requiring a full
+redeployment. The measured graph traversal result is especially
+important for supply-chain and intelligence use cases because disruption
+analysis depends on quickly moving across supplier, region, event, and
+asset relationships.
+
+The final implementation also addressed memory pressure and
+serialization bottlenecks. Heavy conversion of large Neo4j result sets,
+including nested graph entities, can block the FastAPI event loop if
+performed synchronously. HVEOS avoids this problem by offloading hashing
+and stringification to a background thread pool, allowing WebSocket
+\end{quote}
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+21
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+Experiential Learning 2025--26
+\end{quote}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+HVEOS Project Report
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 0\tabcolsep) * \real{1.0000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+streams and user-interface graph updates to remain responsive even when
+large graph
+
+\begin{quote}
+payloads are being prepared.
+\end{quote}
+
+Risk calculation was validated through graph-aware routing. The system
+computes path
+
+impact by multiplying relationship weights along one-hop to three-hop
+graph traversals,
+
+then routes entities into categorical groups such as high risk, medium
+risk, and low risk.
+
+This makes the React Flow interface more operationally useful because
+bulk entity arrays
+
+can be split into actionable categories and updated through real-time
+graph differentials.
+
+Table 3: HVEOS validation phases
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+\textbf{Phase}
+\end{quote}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+\textbf{Validation purpose}
+\end{quote}
+\end{minipage} \\
+\midrule()
+\endhead
+\begin{minipage}[t]{\linewidth}\raggedright
+\begin{quote}
+Phase 1
+\end{quote}
+\end{minipage} & \begin{minipage}[t]{\linewidth}\raggedright
+\begin{quote}
+MQTT IoT and API streaming connectors ingest and format
+\end{quote}
+\end{minipage} \\
+\bottomrule()
+\end{longtable}
+
+raw data correctly.
+
+\begin{quote}
+Phase 2 Pandas cleaning transformations generate lineage tracking in
+PostgreSQL.
+
+Phase 3 Ontology mapper structures raw rows into Neo4j graph net- work
+paths.
+
+One-dimensional Kalman filters smooth noisy streaming Phase 4\\
+metrics.
+
+Phase 5 OR-Tools CPSAT solver optimizes flight-route capacities un- der
+constraints.
+
+Phase 7 Webhook actions are generated for external services based on
+rule violations.
+
+Phase 8 Human operators submit ground-truth corrections through the
+feedback loop.
+
+Phase 9 Optimizer fetches reality from the Neo4j ontology API in- stead
+of static dictionaries.
+
+Phase 10 Redis receives 1,000 rapid telemetry updates and synchro- nizes
+state to Neo4j.
+
+Phase 11 Scenario simulation clones the graph, applies a weather dam-
+age event, and optimizes on the branch reality.
+
+Phase 12 Advanced graph AI aggregates topographical and temporal context
+to compute composite risk.
+
+React workflow payloads are compiled and executed by the Phase 13\\
+backend workflow interpreter.
+
+Phase 14 Governance tracker stamps predictions with SHA-256 hashes for
+data, model, and schema versions.
+
+Phase 15 Active learning detects drift, retrains a model, hot-swaps the
+active pointer, and increments version control.
+\end{quote}\strut
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+22
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+Experiential Learning 2025--26
+\end{quote}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+HVEOS Project Report
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 0\tabcolsep) * \real{1.0000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+\textbf{7.2 Discussion}
+
+The phased tests and benchmark results demonstrate that HVEOS is more
+than a simple data pipeline. It combines streaming ingestion, semantic
+graph modeling, optimization, simulation, governance, visual workflow
+execution, recursive learning, and low-latency graph synchronization.
+The results show that the platform can ingest and transform data while
+also maintaining a semantic operating layer for reasoning over
+relationships.
+
+The throughput benchmark of 10.4k events per second and mean ingestion
+latency of 85 ms indicate that the architecture can support real-time
+operational workloads. The improvement in logic reconfiguration time
+from 1200 seconds to 0.5 seconds is significant because it validates the
+purpose of the visual DAG layer: analysts can modify work-flows quickly
+without rebuilding the entire system. Similarly, the AI linking accuracy
+improvement from 68\% to 91\% suggests that LLM-assisted relationship
+mapping and graph context can create richer knowledge synthesis than
+conventional entity matching alone.
+
+The README highlights Redis benchmarking with 1,000 rapid telemetry
+state updates. This validates the suitability of Redis as a real-time
+cache for operational world state. The final paper extends this
+observation by showing that background serialization offloading prevents
+large graph exports from blocking WebSocket communication. As a result,
+the frontend can continue receiving live graph updates even when the
+backend is processing thousands of nested Neo4j entities.
+
+The risk-propagation model also improves interpretability. Instead of
+assigning risk only to isolated records, HVEOS propagates risk through
+graph paths with depth decay so that nearby relationships have stronger
+influence than distant associations. This ap-proach supports more
+realistic disruption analysis: a direct supplier affected by an event
+should receive a higher operational risk score than a remote entity
+several hops away. The categorical routing of high-risk, medium-risk,
+and low-risk entities makes this graph reasoning usable in the
+interface.
+
+Overall, the results show that HVEOS achieves the main goals of the
+project: fast inges-tion, flexible workflow orchestration, semantic
+graph synthesis, responsive visualization, and governed AI-assisted
+decision support. Further performance evaluation can measure Kafka lag,
+Parquet or Iceberg flush latency, graph write latency, query response
+time un-der concurrent users, homomorphic encryption overhead, and
+active-learning retraining duration.
+\end{quote}
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+23
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+Experiential Learning 2025--26
+\end{quote}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+HVEOS Project Report
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 0\tabcolsep) * \real{1.0000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+\textbf{8. Prototype (Hardware/Software)}
+
+\textbf{8.1 Prototype Description}
+
+The prototype is a software-based intelligence data operating system. It
+includes in-gestion connectors, Pandas transformations, ontology
+mapping, Kalman filtering, OR-Tools optimization, webhook action
+generation, feedback processing, Redis synchroniza-tion, graph
+simulation, risk prediction, workflow interpretation, governance
+hashing, and active-learning model replacement.
+
+\textbf{8.2 Development Process}
+
+The prototype was developed incrementally through functional phases.
+Lower phases validated ingestion and transformation. Middle phases
+introduced graph mapping, fil-tering, optimization, actions, and
+feedback. Advanced phases added ontology-driven optimization, Redis
+world-state benchmarking, scenario branching, graph AI, workflow
+interpretation, governance, and autonomous retraining.
+
+\textbf{8.3 Testing and Validation}
+
+The OpenSky connector continuously fetches live global air-traffic data
+when backend workers are active. The Parquet archive can be verified by
+checking Hive-style partitions under the data-lake path, while Neo4j
+lineage can be verified by running:
+
+MATCH (r:DataRecord) RETURN r LIMIT 100
+
+The expected result is a growing set of cryptographically identified
+records traced back to source batch nodes.
+\end{quote}
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+24
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+Experiential Learning 2025--26
+\end{quote}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+HVEOS Project Report
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 0\tabcolsep) * \real{1.0000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+\textbf{9. Conclusion}
+
+\textbf{9.1 Summary}
+
+HVEOS is a Palantir-tier intelligence data operating system that
+integrates infrastruc-ture services, backend APIs, graph ontology, live
+ingestion, data-lake archival, optimiza-tion engines, governance
+tracking, workflow compilation, and active learning. The archi-tecture
+demonstrates how a modern operational intelligence platform can
+transform raw telemetry into governed, graph-aware, and AI-assisted
+decisions.
+
+Future work can include stronger authentication and role-based access
+control, production deployment scripts, monitoring dashboards, automated
+CI/CD validation for all phase tests, improved fault tolerance for
+infrastructure services, richer graph neural network models, expanded
+external connectors, and formal benchmarking of ingestion throughput and
+model-retraining time.
+
+\textbf{9.2 Personal Reflection}
+
+The project improved the team's understanding of distributed data
+infrastructure and operational intelligence. It showed how MQTT,
+Kafka-compatible routing, Redis, Post-greSQL, Neo4j, and Parquet
+interact in one system. It also provided practical exposure to graph
+ontology, lineage concepts, optimization, simulation, governance, active
+learning, and visual workflow execution through React Flow.
+
+\textbf{10. Visuals}
+
+Figure 4 summarizes the complete HVEOS platform as an integrated data
+operating system. It shows how ingestion services, backend processing,
+graph storage, caching, an-alytics, workflow orchestration, and
+visualization work together instead of operating as isolated modules.
+The diagram is important because it connects the earlier methodolog-ical
+stages to the final prototype implementation.
+
+Figure 5 presents the main quantitative benchmark results. HVEOS
+achieves a maximum throughput of 10.4k events per second compared with
+2.1k events per second for the static ETL baseline. Mean ingestion
+latency is reduced from 350 ms to 85 ms, while logic
+\end{quote}
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+25
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+Experiential Learning 2025--26
+\end{quote}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+HVEOS Project Report
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 0\tabcolsep) * \real{1.0000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\includegraphics[width=5.64028in,height=3.24722in]{vertopal_1eb31eab642d4c369c1560cc12d728ee/media/image7.png}
+
+Figure 4: Overall HVEOS architecture
+
+\includegraphics[width=4.88889in,height=2.13055in]{vertopal_1eb31eab642d4c369c1560cc12d728ee/media/image8.png}
+
+\begin{quote}
+Figure 5: Performance benchmarks comparing HVEOS with a traditional
+static ETL baseline
+
+reconfiguration time improves from a 1200-second redeployment cycle to a
+0.5-second hot-swap through the DAG-based execution model. The benchmark
+also shows improvement in AI linking accuracy from 68\% to 91\% and
+graph traversal time from 3.2 seconds to 0.15 seconds for four-hop
+traversal. These results support the claim that the proposed system is
+more suitable for real-time operational intelligence than a conventional
+batch-oriented pipeline.
+\end{quote}
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+26
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+Experiential Learning 2025--26
+\end{quote}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+HVEOS Project Report
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 0\tabcolsep) * \real{1.0000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\includegraphics[width=4.6375in,height=6.04167in]{vertopal_1eb31eab642d4c369c1560cc12d728ee/media/image9.png}
+
+\begin{quote}
+Figure 6: Bar charts showing memory efficiency and main-thread
+responsiveness under increasing workload
+
+Figure 6 explains the runtime efficiency of the implementation. The
+memory-overhead graph shows that HVEOS grows more gradually as network
+load increases, while the legacy pipeline consumes substantially more
+memory at the same load levels. This in-dicates that modular execution
+and selective state handling reduce pressure on system memory. The
+thread-blocking comparison further shows that thread-pool offloading
+keeps the main execution thread responsive even when graph serialization
+workload increases. For example, at the highest tested workload,
+synchronous GUI processing blocks the main thread for 850 ms, while
+thread-pool offloading limits blocking to 25 ms. This supports the
+design decision to offload expensive graph and visualization tasks so
+that WebSocket updates and frontend interaction remain responsive.
+\end{quote}
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+27
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+Experiential Learning 2025--26
+\end{quote}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+HVEOS Project Report
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 0\tabcolsep) * \real{1.0000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+\textbf{Code and Repository Reference}
+
+The project source code is available at. Important commands from the
+README include:
+
+cd backend\\
+docker-compose up -d\\
+uvicorn app.main:app -\/-reload -\/-port 8000\\
+cd frontend\\
+npm run dev -\/- -\/-force
+
+\textbf{Bibliography}
+
+1. David M. Herold and Lukasz Marzantowicz, ``Supply chain responses to
+global disruptions and its ripple effects: an institutional complexity
+perspective,'' 2023.
+
+2. Pervaiz Akhtar, Arsalan Mujahid Ghouri, Haseeb Ur Rehman Khan, Mirza
+Amin ul Haq, Usama Awan, Nadia Zahoor, Zaheer Khan, and Aniqa Ashraf,
+``Detecting fake news and disinformation using artificial intelligence
+and machine learning to avoid supply chain disruptions,'' 2023.
+
+3. Maryam Shahsavari, Omar Khadeer Hussain, Morteza Saberi, and Pankaj
+Sharma,``Event Identification for Supply Chain Risk Management Through
+News Analysis by Using Large Language Models,'' 2024.
+
+4. Kiran Katoor Vishnuthilak, Benjamin Rolf, Tobias Reggelin, and
+Sebastian Lang, ``Using Sentiment Analysis to Detect Disruptive Events
+in Supply Chains,'' 2024.
+
+5. Giuseppe Aiello, Cinzia Muriana, Salvatore Quaranta, and Islam Asem
+Salah Abushoyon,``A sustainable inventory management model for closed
+loop supply chain involving waste reduction and treatment,'' 2025.
+
+6. HVEOS GitHub Repository:.
+
+7. FastAPI Documentation, official framework documentation for Python
+API ser- vices.
+
+8. Neo4j Documentation, official graph database and Cypher query
+documentation.
+
+9. Redis Documentation, official in-memory data store documentation.
+\end{quote}\strut
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+28
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+Experiential Learning 2025--26
+\end{quote}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+HVEOS Project Report
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 0\tabcolsep) * \real{1.0000}}@{}}
+\toprule()
+\begin{minipage}[b]{\linewidth}\raggedright
+\begin{quote}
+10. Apache Arrow Documentation, official PyArrow and Parquet format
+documenta-tion.
+
+11. React Flow Documentation, official documentation for node-based
+frontend work-flow interfaces.
+
+\textbf{11. QR Code of Demonstration Video}
+\end{quote}
+
+\includegraphics[width=2.63194in,height=2.58333in]{vertopal_1eb31eab642d4c369c1560cc12d728ee/media/image10.png}
+\end{minipage} \\
+\midrule()
+\endhead
+\bottomrule()
+\end{longtable}
+
+29
+
+\end{document}

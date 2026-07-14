@@ -1,0 +1,38 @@
+\contentsline {section}{\numberline {1}Introduction}{3}{section.1}%
+\contentsline {section}{\numberline {2}Problem Definition}{3}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Problem Statement}{3}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Background Information: Literature Review}{3}{subsection.2.2}%
+\contentsline {section}{\numberline {3}Objectives}{6}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Primary Objectives}{6}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Secondary Objectives}{6}{subsection.3.2}%
+\contentsline {section}{\numberline {4}Methodology}{7}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Methodological Overview}{7}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Stage 1: Heterogeneous Data Source Selection}{8}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Stage 2: Continuous Connector Framework}{8}{subsection.4.3}%
+\contentsline {subsection}{\numberline {4.4}Stage 3: Deduplication and Provenance Preservation}{9}{subsection.4.4}%
+\contentsline {subsection}{\numberline {4.5}Stage 4: Schema-Agnostic Normalisation}{10}{subsection.4.5}%
+\contentsline {subsection}{\numberline {4.6}Stage 5: NLP-Based Signal Extraction}{10}{subsection.4.6}%
+\contentsline {subsection}{\numberline {4.7}Stage 6: Classification of Supply-Chain Disruption Types}{11}{subsection.4.7}%
+\contentsline {subsection}{\numberline {4.8}Stage 7: Integration and Controlled Vocabulary Linking}{12}{subsection.4.8}%
+\contentsline {subsection}{\numberline {4.9}Stage 8: Weighted Composite Risk Scoring}{13}{subsection.4.9}%
+\contentsline {subsection}{\numberline {4.10}Stage 9: Score Aggregation, Modulation, and Alert Mapping}{14}{subsection.4.10}%
+\contentsline {subsection}{\numberline {4.11}Validation Procedure}{14}{subsection.4.11}%
+\contentsline {subsection}{\numberline {4.12}Expected Methodological Outcome}{15}{subsection.4.12}%
+\contentsline {section}{\numberline {5}Project Execution}{16}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Planning and Design}{16}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Implementation}{16}{subsection.5.2}%
+\contentsline {section}{\numberline {6}Tools and Techniques Used}{16}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Tools}{16}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}Techniques}{17}{subsection.6.2}%
+\contentsline {section}{\numberline {7}Results and Discussion}{17}{section.7}%
+\contentsline {subsection}{\numberline {7.1}Final Results}{17}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}Discussion}{19}{subsection.7.2}%
+\contentsline {section}{\numberline {8}Prototype (Hardware/Software)}{20}{section.8}%
+\contentsline {subsection}{\numberline {8.1}Prototype Description}{20}{subsection.8.1}%
+\contentsline {subsection}{\numberline {8.2}Development Process}{20}{subsection.8.2}%
+\contentsline {subsection}{\numberline {8.3}Testing and Validation}{20}{subsection.8.3}%
+\contentsline {section}{\numberline {9}Conclusion}{21}{section.9}%
+\contentsline {subsection}{\numberline {9.1}Summary}{21}{subsection.9.1}%
+\contentsline {subsection}{\numberline {9.2}Personal Reflection}{21}{subsection.9.2}%
+\contentsline {section}{\numberline {10}Visuals}{21}{section.10}%
+\contentsline {section}{\numberline {11}QR Code of Demonstration Video}{28}{section.11}%
